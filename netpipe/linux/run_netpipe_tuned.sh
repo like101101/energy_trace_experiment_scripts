@@ -1,7 +1,7 @@
 set -x
 
-#example server: MSGSIZES='8192' ITR='8 4' MDVFS='0x1d00 0x1c00' REPEAT=1 WRITEBACK_DIR="/mnt/netpipe/linux/9_27" MYIP="192.168.1.9" ./run_netpipe_tuned.sh
-#example client: MSGSIZES='8192' ITR='8 4' MDVFS='0x1d00 0x1c00' REPEAT=1 WRITEBACK_DIR="/mnt/netpipe/linux/9_27" ROLE="CLIENT" MYIP="192.168.1.11" NP_SERVER_IP="192.168.1.9" ./run_netpipe_tuned.sh
+#example server: MSGSIZES='8192' ITR='8 4' MDVFS='0x1d00 0x1c00' MRAPL='135' REPEAT=1 WRITEBACK_DIR="/mnt/netpipe/linux/9_27" MYIP="192.168.1.9" ./run_netpipe_tuned.sh
+#example client: MSGSIZES='8192' ITR='8 4' MDVFS='0x1d00 0x1c00' MRAPL='135' REPEAT=1 WRITEBACK_DIR="/mnt/netpipe/linux/9_27" ROLE="CLIENT" MYIP="192.168.1.11" NP_SERVER_IP="192.168.1.9" ./run_netpipe_tuned.sh
 # tshark -i eth0 -w t.pcap -F pcap host 192.168.1.9 &
 
 TS=$(date +"%m.%d.%y-%H.%M.%S")
@@ -38,6 +38,7 @@ export ROLE=${ROLE:-"SERVER"}
 export DEVICE=${DEVICE:-"eth0"}
 export MYIP=${MYIP:-"192.168.1.9"}
 export NP_SERVER_IP=${NP_SERVER_IP:-"192.168.1.9"}
+export HOST_IP=${HOST_IP:-"192.168.1.153"}
 #export ITR=${ITR:-"0 4 8 12 16 20 24 28 32 36 40 60 80 100"}
 export ITR=${ITR:-"10"}
 #export MSGSIZES=${MSGSIZES:-"64 128 256 512 1024 2048 3072 4096 8192 12288 16384 24576 49152 65536 98304 131072 196608 262144 393216 524288 786432"}
@@ -142,7 +143,7 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 			${SLEEP} 5
 		    fi		    
 		    ${SLEEP} 1
-		    ${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} 192.168.1.153:${WRITEBACK_DIR}
+		    ${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} ${HOST_IP}:${WRITEBACK_DIR}
 	    	done
             done
         done	
