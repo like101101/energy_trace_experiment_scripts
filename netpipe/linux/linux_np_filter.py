@@ -28,6 +28,7 @@ parser.add_argument("--itr", help="Static interrupt delay [10, 1000]", required=
 parser.add_argument("--msg", help="message sizes [64, 8192, 65536, 524288]", required=True)
 parser.add_argument("--core", help="0 to NPROC", type=int, required=True)
 parser.add_argument("--iterations", help="repeat value", type=int, required=True)
+parser.add_argument("--dir", help="directory to read and put filtered output", required=True)
 
 args = parser.parse_args()
 
@@ -37,6 +38,7 @@ itrs=args.itr
 msgs=args.msg
 core=args.core
 iters=args.iterations
+dir=args.dir
 
 print(args)
 
@@ -45,10 +47,10 @@ for i in range(0, iters):
         for itr in itrs.split(' '):
             for d in dvfs.split(' '):
                 for r in rapl.split(' '):
-                    fname = 'linux.np.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fnpserver = 'linux.np.server.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fnpout = 'linux.np.client.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fdmesg = 'linux.np.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
+                    fname = dir+'/linux.np.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
+                    fnpserver = dir+'/linux.np.server.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
+                    fnpout = dir+'/linux.np.client.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
+                    fdmesg = dir+'/linux.np.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
                     
                     if not path.exists(fname):
                         print(fname, "doesn't exist?")
@@ -89,13 +91,16 @@ for i in range(0, iters):
                     #fw.close()                                
                 
                     #print("i rx_desc rx_bytes tx_desc tx_bytes instructions cycles llc_miss joules timestamp")
-                    print(fdmesg)
+                    
+                    print(fdmesg)             
                     f = open(fname)
                     fw = open(fdmesg, 'w')
+                    fw.write('i rx_desc rx_bytes tx_desc tx_bytes instructions cycles ref_cycles llc_miss c3 c6 c7 joules timestamp\n')
                     for line in f:
                         tmp2 = line.strip().split(' ')
-                        if 'i' not in line.strip():                        
+                        if 'i' not in line.strip():
                             if int(tmp2[len(tmp2)-1]) > START_RDTSC and int(tmp2[len(tmp2)-1]) < END_RDTSC:
                                 fw.write(line.strip()+'\n')
                     f.close()
                     fw.close()
+
