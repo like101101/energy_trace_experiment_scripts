@@ -116,5 +116,7 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 	fi		    
 	${SLEEP} 1
 	${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${ITR}_${MDVFS}_${MRAPL} ${HOST_IP}:${WRITEBACK_DIR}
+	${SLEEP} 1
+        ${RM} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${ITR}_${MDVFS}_${MRAPL}
     done
 done

@@ -74,12 +74,11 @@ if [[ ${PERF_INIT} == 1 ]]; then
     ${SLEEP} 1
 
     ## apply ixgbe module with logging
-    if [[ ${ROLE} == "SERVER" ]]; then    
-	${SLEEP} 1
-	#rmmod ixgbe && insmod /app/ixgbe/ixgbe_movnti.ko && /app/perf/set_ip.sh eth0 192.168.1.9
-        ${RMMOD} ${IXGBE} && ${INSMOD} ${ETHMODULE_YESLOG} && ${SET_IP} ${DEVICE} ${MYIP}
-	${SLEEP} 1
-    fi
+    #if [[ ${ROLE} == "SERVER" ]]; then    
+    ${SLEEP} 1
+    ${RMMOD} ${IXGBE} && ${INSMOD} ${ETHMODULE_YESLOG} && ${SET_IP} ${DEVICE} ${MYIP}
+    ${SLEEP} 1
+    #fi
 
     ## set ITR to statically tuned
     ${ETHTOOL} -C ${DEVICE} rx-usecs 10
@@ -135,17 +134,26 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 			fi			
 			
 			# dumps logs
-			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.server.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
 			${SLEEP} 5
 		    else
 			#echo "CLIENT"
 		        while ! ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -h ${NP_SERVER_IP} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I; do
 			    echo "FAILED: Server not ready trying again ..."
 			    ${SLEEP} 5
+			    ## clean up previous trace logs just incase
+			    ${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /dev/null
 			done
+
+			# dumps logs
+			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.client.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+			${SLEEP} 1
+			
 		        ${CAT} np.out &> /app/linux.np.client.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
 			${SLEEP} 5
-		    fi		    
+		    fi
+
+		    # copy data to HOST_IP
 		    ${SLEEP} 1
 		    ${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} ${HOST_IP}:${WRITEBACK_DIR}/
 		    ${SLEEP} 1

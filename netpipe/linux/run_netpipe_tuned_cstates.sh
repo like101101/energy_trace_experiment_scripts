@@ -37,6 +37,7 @@ SET_IP=/app/perf/set_ip.sh
 IXGBE_STATS_CORE=/proc/ixgbe_stats/core
 DVFS="0x199"
 TURBOBOOST="0x1a0"
+MIN_CSTATE=/sys/module/intel_idle/parameters/min_cstate
 
 export ROLE=${ROLE:-"SERVER"}
 export DEVICE=${DEVICE:-"eth0"}
@@ -96,62 +97,69 @@ ${RDMSR} -a ${DVFS}
 ${RDMSR} -a ${TURBOBOOST}
 
 for ((i=$BEGINI;i<$REPEAT; i++)); do
-    for msg in $MSGSIZES; do
-    	for itr in $ITR; do
-	    #echo "${ETHTOOL} -C ${DEVICE} rx-usecs ${itr}"
-	    ${ETHTOOL} -C ${DEVICE} rx-usecs ${itr}
-	    for dvfs in ${MDVFS}; do
-	    	if [[ ${ROLE} == "SERVER" ]]; then
-		    ${WRMSR} -p ${TASKSETCPU} ${DVFS} ${dvfs}
-		    #echo "${WRMSR} -p ${TASKSETCPU} ${DVFS} ${dvfs}"
-		    ${SLEEP} 1
-		fi
-	    	
-	    	for r in ${MRAPL}; do
-		    if [[ ${ROLE} == "SERVER" ]]; then
-			#echo "${RAPL_POW_MOD} ${r}"
-			${RAPL_POW_MOD} ${r}
+    for((cs=5;cs>0; cs--)); do
+	if [[ ${ROLE} == "SERVER" ]]; then
+	    echo ${cs} > ${MIN_CSTATE}
+	    ${SLEEP} 1
+	fi
+
+	for msg in $MSGSIZES; do
+    	    for itr in $ITR; do
+		#echo "${ETHTOOL} -C ${DEVICE} rx-usecs ${itr}"
+		${ETHTOOL} -C ${DEVICE} rx-usecs ${itr}
+		for dvfs in ${MDVFS}; do
+	    	    if [[ ${ROLE} == "SERVER" ]]; then
+			${WRMSR} -p ${TASKSETCPU} ${DVFS} ${dvfs}
+			#echo "${WRMSR} -p ${TASKSETCPU} ${DVFS} ${dvfs}"
 			${SLEEP} 1
 		    fi
-		    
-		    if [[ ${ROLE} == "SERVER" ]]; then
-			## clean up previous trace logs just incase
-			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /dev/null
-
-			## start wireshark
-			if [[ ${CAPSHARK} == 1 ]]; then
-			    ${SLEEP} 1
-			    ${TASKSET} -c 0 ${TSHARK} -i ${DEVICE} -w /app/tshark.pcap.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} -F pcap host ${MYIP} &
+	    	    
+	    	    for r in ${MRAPL}; do
+			if [[ ${ROLE} == "SERVER" ]]; then
+			    #echo "${RAPL_POW_MOD} ${r}"
+			    ${RAPL_POW_MOD} ${r}
 			    ${SLEEP} 1
 			fi
-
-			## start np server
-		        ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I &> /app/linux.np.server.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
-
-			if [[ ${CAPSHARK} == 1 ]]; then
-			    ${SLEEP} 1
-			    ${PKILL} ${TSHARK}
-			    ${SLEEP} 1
-			fi			
 			
-			# dumps logs
-			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
-			${SLEEP} 5
-		    else
-			#echo "CLIENT"
-		        while ! ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -h ${NP_SERVER_IP} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I; do
-			    echo "FAILED: Server not ready trying again ..."
+			if [[ ${ROLE} == "SERVER" ]]; then
+			    ## clean up previous trace logs just incase
+			    ${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /dev/null
+
+			    ## start wireshark
+			    if [[ ${CAPSHARK} == 1 ]]; then
+				${SLEEP} 1
+				${TASKSET} -c 0 ${TSHARK} -i ${DEVICE} -w /app/tshark.pcap.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} -F pcap host ${MYIP} &
+				${SLEEP} 1
+			    fi
+
+			    ## start np server
+		            ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I &> /app/linux.np.server.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+
+			    if [[ ${CAPSHARK} == 1 ]]; then
+				${SLEEP} 1
+				${PKILL} ${TSHARK}
+				${SLEEP} 1
+			    fi			
+			    
+			    # dumps logs
+			    ${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
 			    ${SLEEP} 5
-			done
-		        ${CAT} np.out &> /app/linux.np.client.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
-			${SLEEP} 5
-		    fi		    
-		    ${SLEEP} 1
-		    ${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} ${HOST_IP}:${WRITEBACK_DIR}/
-		    ${SLEEP} 1
-	    	    ${RM} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} 
-	        done
-	    done
-        done	
+			else
+			    #echo "CLIENT"
+		            while ! ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -h ${NP_SERVER_IP} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I; do
+				echo "FAILED: Server not ready trying again ..."
+				${SLEEP} 5
+			    done
+		            ${CAT} np.out &> /app/linux.np.client.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+			    ${SLEEP} 5
+			fi		    
+			${SLEEP} 1
+			${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} ${HOST_IP}:${WRITEBACK_DIR}/C${cs}/
+			${SLEEP} 1
+	    		${RM} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} 
+	            done
+		done
+            done	
+	done
     done
 done
