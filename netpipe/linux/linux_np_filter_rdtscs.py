@@ -4,6 +4,8 @@ from os import path
 import argparse
 
 '''
+KHZ = 2199999
+
 python ~/github/energy_trace_experiment_scripts/netpipe/linux/linux_np_filter.py --rapl='135' --dvfs='0x1900' --itr='2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80 82 84 86 88 90 94 100' --msg='4096 8192 16384 24576 65536 98304 131072' --core=1 --iterations=1 --dir='/home/handong/github/nic-tuning-experiments/analysis/netpipe_logs/netpipe/linux/10_13/'
 dvfs = ["0x1500",
         "0x1600",
@@ -48,37 +50,17 @@ for i in range(0, iters):
         for itr in itrs.split(' '):
             for d in dvfs.split(' '):
                 for r in rapl.split(' '):
-                    fname = dir+'/linux.np.server.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fnpserver = dir+'/linux.np.server.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fnpout = dir+'/linux.np.client.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fdmesg = dir+'/linux.np.server.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
+                    fin = dir+'/rdtscs.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
+                    fout = dir+'/rdtscs.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
                     
-                    if not path.exists(fname):
-                        print(fname, "doesn't exist?")
+                    if not path.exists(fin):
+                        print(fin, "doesn't exist?")
                         exit()
-                    if not path.exists(fnpserver):
-                        print(fnpserver, "doesn't exist?")
-                        exit()
-                    if not path.exists(fnpout):
-                        print(fnpout, "doesn't exist?")
-                        exit()
-                
-                    tput = 0.0
-                    lat = 0.0
-                    f = open(fnpout, 'r')
+                        
+                    f = open(fin, 'r')
+                    fw = open(fout, 'w')
+                    
                     for line in f:
-                        tmp = list(filter(None, line.strip().split(' ')))
-                        tput = float(tmp[1])
-                        break
-                    f.close()                
-
-                    f = open(fnpserver, 'r')
-                    START_RDTSC = 0
-                    END_RDTSC = 0
-                    pk0j = 0.0
-                    pk1j = 0.0
-                    for line in f:
-                        if 'WORKLOAD' in line.strip():
                             tmp = list(filter(None, line.strip().split(' ')))
                             START_RDTSC = int(tmp[1])
                             END_RDTSC = int(tmp[2])

@@ -120,7 +120,7 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 			## start wireshark
 			if [[ ${CAPSHARK} == 1 ]]; then
 			    ${SLEEP} 1
-			    ${TASKSET} -c 0 ${TSHARK} -i ${DEVICE} -w /app/tshark.pcap.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} -F pcap host ${MYIP} &
+			    ${TASKSET} -c 0 ${TSHARK} -i ${DEVICE} -w /app/tshark.server.pcap.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} -F pcap host ${MYIP} &
 			    ${SLEEP} 1
 			fi
 
@@ -137,6 +137,14 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.server.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
 			${SLEEP} 5
 		    else
+			## start wireshark
+			if [[ ${CAPSHARK} == 1 ]]; then
+			    ${SLEEP} 1
+			    ${TASKSET} -c 0 ${TSHARK} -i ${DEVICE} -w /app/tshark.client.pcap.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} -F pcap host ${MYIP} &
+			    ${SLEEP} 1
+			fi
+
+			
 			#echo "CLIENT"
 		        while ! ${TASKSET} -c ${TASKSETCPU} ${NETPIPE} -h ${NP_SERVER_IP} -l ${msg} -u ${msg} -n ${LOOP} -p 0 -r -I; do
 			    echo "FAILED: Server not ready trying again ..."
@@ -145,6 +153,12 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 			    ${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /dev/null
 			done
 
+			if [[ ${CAPSHARK} == 1 ]]; then
+			    ${SLEEP} 1
+			    ${PKILL} ${TSHARK}
+			    ${SLEEP} 1
+			fi			
+			
 			# dumps logs
 			${CAT} ${IXGBE_STATS_CORE}/${TASKSETCPU} &> /app/linux.np.client.log.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
 			${SLEEP} 1
@@ -157,7 +171,10 @@ for ((i=$BEGINI;i<$REPEAT; i++)); do
 		    ${SLEEP} 1
 		    ${SCP} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} ${HOST_IP}:${WRITEBACK_DIR}/
 		    ${SLEEP} 1
-	    	    ${RM} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r} 
+	    	    ${RM} /app/*.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+		    if [[ ${ROLE} == "SERVER" ]]; then
+			ssh 192.168.1.153 cp /root/github/tcp/rdtscs.log.0_${msg} ${WRITEBACK_DIR}/rdtscs.${i}_${TASKSETCPU}_${msg}_${LOOP}_${itr}_${dvfs}_${r}
+		    fi		    
 	        done
 	    done
         done	

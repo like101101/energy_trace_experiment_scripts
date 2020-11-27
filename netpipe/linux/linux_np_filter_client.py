@@ -48,16 +48,12 @@ for i in range(0, iters):
         for itr in itrs.split(' '):
             for d in dvfs.split(' '):
                 for r in rapl.split(' '):
-                    fname = dir+'/linux.np.server.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fnpserver = dir+'/linux.np.server.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
+                    fname = dir+'/linux.np.client.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
                     fnpout = dir+'/linux.np.client.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r
-                    fdmesg = dir+'/linux.np.server.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
+                    fdmesg = dir+'/linux.np.client.log.'+str(i)+'_'+str(core)+'_'+msg+'_5000_'+str(itr)+'_'+d+'_'+r+'.csv'
                     
                     if not path.exists(fname):
                         print(fname, "doesn't exist?")
-                        exit()
-                    if not path.exists(fnpserver):
-                        print(fnpserver, "doesn't exist?")
                         exit()
                     if not path.exists(fnpout):
                         print(fnpout, "doesn't exist?")
@@ -68,25 +64,11 @@ for i in range(0, iters):
                     f = open(fnpout, 'r')
                     for line in f:
                         tmp = list(filter(None, line.strip().split(' ')))
-                        tput = float(tmp[1])
+                        START_RDTSC = int(tmp[5])
+                        END_RDTSC = int(tmp[6])
                         break
-                    f.close()                
-
-                    f = open(fnpserver, 'r')
-                    START_RDTSC = 0
-                    END_RDTSC = 0
-                    pk0j = 0.0
-                    pk1j = 0.0
-                    for line in f:
-                        if 'WORKLOAD' in line.strip():
-                            tmp = list(filter(None, line.strip().split(' ')))
-                            START_RDTSC = int(tmp[1])
-                            END_RDTSC = int(tmp[2])
-                            pk0j = float(tmp[3])
-                            pk1j = float(tmp[4])
-                            break
                     f.close()
-                    
+                                        
                     print(fdmesg)             
                     f = open(fname)
                     fw = open(fdmesg, 'w')
@@ -98,4 +80,4 @@ for i in range(0, iters):
                                 fw.write(line.strip()+'\n')
                     f.close()
                     fw.close()
-
+                    
