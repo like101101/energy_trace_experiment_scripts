@@ -69,6 +69,8 @@ plt.rc('legend', fontsize=14)    # legend fontsize
 
 plt.ion()
 
+MSG=200000
+
 x_offset, y_offset = 0.01/5, 0.01/5
 
 LINUX_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7', 'joules', 'timestamp']
@@ -100,20 +102,21 @@ df['edp'] = 0.5 * df['joules'] * df['time']
 
 #plot 1: overview
 plt.figure()
-dld = df[(df['sys']=='linux_default') & (df['itr']==1) & (df['dvfs']=='0xffff') & (df['target_QPS'] == 100000)].copy()
-dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == 100000)].copy()
-det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == 100000)].copy()
+dld = df[(df['sys']=='linux_default') & (df['itr']==1) & (df['dvfs']=='0xffff') & (df['target_QPS'] == MSG)].copy()
+dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == MSG)].copy()
+det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == MSG)].copy()
 #plt.title('Memcached-Silo 200K QPS')
-plt.errorbar(det['read_99th'], det['joules'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
-plt.errorbar(dlt['read_99th'], dlt['joules'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
-plt.errorbar(dld['read_99th'], dld['joules'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
-plt.xlabel("99% Tail Latency (usecs)")
-plt.ylabel("Energy Consumed (Joules)")
+plt.errorbar(det['joules'], det['read_99th'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
+plt.errorbar(dlt['joules'], dlt['read_99th'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
+plt.errorbar(dld['joules'], dld['read_99th'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
+plt.ylabel("99% Tail Latency (usecs)")
+plt.xlabel("Energy Consumed (Joules)")
 #plt.legend()
 plt.grid()
 plt.show()
-plt.savefig('mcdsilo_100K_overview.pdf')
+plt.savefig(f'mcdsilo_{MSG}_overview.pdf')
 
+'''
 ## EDP
 x_offset, y_offset = 0.01/5, 0.01/5
 plt.figure()
@@ -278,3 +281,4 @@ for d in [dld, dlt, det]:
 
     
 
+'''

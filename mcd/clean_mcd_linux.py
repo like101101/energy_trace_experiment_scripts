@@ -5,24 +5,21 @@ import sys
 import time
 import numpy as np
 import pandas as pd
-import math
 
 print(len(sys.argv), sys.argv)
 if len(sys.argv) != 2:
-    print("clean_mcdsilo_ebbrt.py <path>")
+    print("clean_mcd_linux.py <path>")
     exit()
 loc = sys.argv[1]
 
-
+'''
 dvfs = ["0xd00",
         "0xf00",
-        "0x1000",
         "0x1100",
         "0x1200",
         "0x1300",
         "0x1400",
         "0x1500",
-        "0x1600",
         "0x1700",
         "0x1800",
         "0x1900",
@@ -31,19 +28,19 @@ dvfs = ["0xd00",
         "0x1c00",
         "0x1d00"]
     
-itrs = ["50", "60", "70", "80", "90", "100", "200", "300", "400"]
+itrs = ["50", "100", "200", "300", "350", "400"]
 rapls = ["135", "95", "75", "55"]
-qpss = ["50000", "100000", "200000", "400000", "600000"]
+qpss = ["200000", "400000", "600000"]
+'''
 
+dvfs=["0x1d00"]
+itrs=["400"]
+rapls = ["135"]
+qpss = ["600000"]
 
-#dvfs=["0x1900"]
-#itrs=["100"]
-#rapls=["95"]
-#qpss=["200000"]
-
-iters = 10
-possible_qps_vals = np.array([50000, 100000, 200000, 400000, 600000])
-EBBRT_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c3', 'c6', 'c7', 'joules', 'timestamp']
+iters = 1
+possible_qps_vals = np.array([200000, 400000, 600000])
+LINUX_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7', 'joules', 'timestamp']
 
 TIME_CONVERSION_khz = 1./(2899999*1000)
 JOULE_CONVERSION = 0.00001526
@@ -85,7 +82,8 @@ def parseOut(i, itr, d, rapl, q):
     global mqps
     global cqps
     
-    f = f'{loc}/ebbrt_out.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
+    f = f'{loc}/linux.mcd.out.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
+    #print(f)
     fout = open(f, 'r')
     for line in fout:
         if "Total QPS" in line:
@@ -108,34 +106,41 @@ def parseRdtsc(i, itr, d, rapl, q):
     global END_RDTSC
     global tdiff
 
-    f = f'{loc}/ebbrt_rdtsc.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
+    f = f'{loc}/linux.mcd.rdtsc.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
     frtdsc = open(f, 'r')
     START_RDTSC = 0
     END_RDTSC = 0
     for line in frtdsc:
         tmp = line.strip().split(' ')
-        START_RDTSC = int(tmp[0])
-        END_RDTSC = int(tmp[1])
-        break
+        if int(tmp[2]) > START_RDTSC:                                
+            START_RDTSC = int(tmp[2])
+            
+        if END_RDTSC == 0:                                
+            END_RDTSC = int(tmp[3])
+        elif END_RDTSC < int(tmp[3]):
+            END_RDTSC = int(tmp[3])                                                            
     frtdsc.close()
-                                
-#print("sys i core itr dvfs rapl measure_QPS target_QPS time joule instructions cycles ref_cycles llc_miss c1 c1e c3 c6 c7 read_5th read_10th read_50th read_90th read_95th read_99th num_interrupts")
-
+    tdiff = round(float((END_RDTSC - START_RDTSC) * TIME_CONVERSION_khz), 2)
+                        
 def exists(i, itr, d, rapl, q):
-    outf = f'{loc}/ebbrt_out.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
+    outf = f'{loc}/linux.mcd.out.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
     if not path.exists(outf):
+        print(outf)
         return False
     
-    rf = f'{loc}/ebbrt_rdtsc.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
+    rf = f'{loc}/linux.mcd.rdtsc.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
     if not path.exists(rf):
+        print(rf)
         return False
 
-    for core in range(0, 15):
-        fname = f'{loc}/ebbrt_dmesg.'+str(i)+'_'+str(core)+'_'+itr+'_'+d+'_'+rapl+'_'+qps+'.csv'
+    for core in range(0, 16):
+        fname = f'{loc}/linux.mcd.dmesg.'+str(i)+'_'+str(core)+'_'+itr+'_'+d+'_'+rapl+'_'+qps
         if not path.exists(fname):
+            #print(fname)
             return False
     return True                    
-
+        
+print("sys i itr dvfs rapl measure_QPS target_QPS time joule instructions cycles ref_cycles llc_miss c1 c1e c3 c6 c7 read_5th read_10th read_50th read_90th read_95th read_99th num_interrupts")
 for d in dvfs:
     for itr in itrs:
         for qps in qpss:
@@ -168,27 +173,21 @@ for d in dvfs:
                         trx_bytes = 0
                         ttx_desc = 0
                         ttx_bytes = 0
-                        tnum_interrupts = 0
-                        poutname=""
-                        
+                        tnum_interrupts = 0                    
                         parseOut(i, itr, d, rapl, qps)
                         parseRdtsc(i, itr, d, rapl, qps)
-                        for core in range(0, 15):
-                            fname = f'{loc}/ebbrt_dmesg.'+str(i)+'_'+str(core)+'_'+itr+'_'+d+'_'+rapl+'_'+qps+'.csv'
-                            df = pd.read_csv(fname, sep=' ', names=EBBRT_COLS, skiprows=1)
+                        for core in range(0, 16):
+                            fname = f'{loc}/linux.mcd.dmesg.'+str(i)+'_'+str(core)+'_'+itr+'_'+d+'_'+rapl+'_'+qps
+                            df = pd.read_csv(fname, sep=' ', names=LINUX_COLS)
                             df = df[df['timestamp'] >= START_RDTSC]
-                            #df = df[df['timestamp'] <= END_RDTSC]
-                            
-                            df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
-                            df['timestamp'] = df['timestamp'] - df['timestamp'].min()
-                            df = df[df['timestamp'] <= 20.0]
-                            df['timestamp_diff'] = df['timestamp'].diff()
-                            df.dropna(inplace=True)
-                            
+                            df = df[df['timestamp'] <= END_RDTSC]
+
                             df_non0j = df[(df['joules']>0) & (df['instructions'] > 0) & (df['cycles'] > 0) & (df['ref_cycles'] > 0) & (df['llc_miss'] > 0)].copy()
+                            df_non0j['timestamp'] = df_non0j['timestamp'] - df_non0j['timestamp'].min()
+                            df_non0j['timestamp'] = df_non0j['timestamp'] * TIME_CONVERSION_khz
                             df_non0j['joules'] = df_non0j['joules'] * JOULE_CONVERSION
-                            
-                            tmp = df_non0j[['instructions', 'cycles', 'ref_cycles', 'llc_miss', 'joules']].diff()
+                                         
+                            tmp = df_non0j[['instructions', 'cycles', 'ref_cycles', 'llc_miss', 'joules', 'c1', 'c1e', 'c3', 'c6', 'c7']].diff()
                             tmp.columns = [f'{c}_diff' for c in tmp.columns]
                             df_non0j = pd.concat([df_non0j, tmp], axis=1)
                             df_non0j.dropna(inplace=True)
@@ -203,20 +202,18 @@ for d in dvfs:
                             trx_bytes += df['rx_bytes'].sum()
                             ttx_desc += df['tx_desc'].sum()
                             ttx_bytes += df['tx_bytes'].sum()
-                            
+                                         
                             tins += df_non0j['instructions_diff'].sum()
                             tcyc += df_non0j['cycles_diff'].sum()
                             trefcyc += df_non0j['ref_cycles_diff'].sum()
                             tllcm += df_non0j['llc_miss_diff'].sum()
-                            tc1 = 0
-                            tc1e = 0
-                            tc3 += df_non0j['c3'].sum()
-                            tc6 += df_non0j['c6'].sum()
-                            tc7 += df_non0j['c7'].sum()
+                            tc1 += df_non0j['c1_diff'].sum()
+                            tc1e += df_non0j['c1e_diff'].sum()
+                            tc3 += df_non0j['c3_diff'].sum()
+                            tc6 += df_non0j['c6_diff'].sum()
+                            tc7 += df_non0j['c7_diff'].sum()
                             tnum_interrupts += df.shape[0]
-                            tdiff = math.ceil(df['timestamp_diff'].sum())
-
-                            #print(f"ebbrt_core_tuned {i} {core} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(cjoules, 2)} {df['rx_desc'].sum()} {df['rx_bytes'].sum()} {df['tx_desc'].sum()} {df['tx_bytes'].sum()} {int(df_non0j['instructions_diff'].sum())} {int(df_non0j['cycles_diff'].sum())} {int(df_non0j['ref_cycles_diff'].sum())} {int(df_non0j['llc_miss_diff'].sum())} {int(0)} {int(0)} {int(df_non0j['c3'].sum())} {int(df_non0j['c6'].sum())} {int(df_non0j['c7'].sum())} {df.shape[0]}")  
-                        print(f"ebbrt_tuned {i} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(tjoules, 2)} {int(trx_desc)} {int(trx_bytes)} {int(ttx_desc)} {int(ttx_bytes)} {int(tins)} {int(tcyc)} {int(trefcyc)} {int(tllcm)} {int(tc1)} {int(tc1e)} {int(tc3)} {int(tc6)} {int(tc7)} {int(tnum_interrupts)}")
-                            
                         
+                            #print(f"linux_core_tuned {i} {core} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(cjoules, 2)} {df['rx_desc'].sum()} {df['rx_bytes'].sum()} {df['tx_desc'].sum()} {df['tx_bytes'].sum()} {int(df_non0j['instructions_diff'].sum())} {int(df_non0j['cycles_diff'].sum())} {int(df_non0j['ref_cycles_diff'].sum())} {int(df_non0j['llc_miss_diff'].sum())} {int(df_non0j['c1_diff'].sum())} {int(df_non0j['c1e_diff'].sum())} {int(df_non0j['c3_diff'].sum())} {int(df_non0j['c6_diff'].sum())} {int(df_non0j['c7_diff'].sum())} {df.shape[0]}")
+                        print(f"linux_tuned {i} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(tjoules, 2)} {trx_desc} {trx_bytes} {ttx_desc} {ttx_bytes} {tins} {tcyc} {trefcyc} {tllcm} {tc1} {tc1e} {tc3} {tc6} {tc7} {tnum_interrupts}")
+                            

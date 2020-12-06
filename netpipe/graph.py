@@ -5,6 +5,7 @@ import matplotlib
 import os
 import glob
 import multiprocessing as mp
+import sys
 
 COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'llc_miss', 'joules', 'timestamp']
 DEFAULT_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c3', 'c6', 'c7', 'joules', 'timestamp']
@@ -49,7 +50,11 @@ x_offset, y_offset = 0.01/5, 0.01/5
 
 JOULE_CONVERSION = 0.00001526 #counter * constant -> JoulesOB
 TIME_CONVERSION_khz = 1./(2899999*1000)
-MMSG=65536
+
+if len(sys.argv) != 2:
+    print("graph.py <MMSG>")
+    exit()
+MMSG = int(sys.argv[1])
 
 workload_loc='/scratch2/netpipe/netpipe_combined/netpipe_combined.csv'
 log_loc='/scratch2/netpipe/netpipe_combined/'
@@ -75,7 +80,7 @@ df = df[df['joules'] > 0]
 df['edp'] = df['joules'] * df['time']
 df['tput'] = df['tput']/1000.0
 
-#plot 1: throughput vs msg size
+# overview
 plt.figure()
 
 det = df[(df['sys']=='ebbrt_tuned') & (df['msg']==MMSG)].copy()
@@ -87,9 +92,9 @@ plt.errorbar(det['joules'], det['time'], fmt='x', label=LABELS[det['sys'].max()]
 plt.errorbar(dlt['joules'], dlt['time'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=0.5)
 plt.errorbar(dld['joules'], dld['time'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=0.5)
 
-plt.xlabel("Time (secs)")
-plt.ylabel("Energy Consumed (Joules)")
-plt.legend()
+plt.ylabel("Time (secs)")
+plt.xlabel("Energy Consumed (Joules)")
+plt.legend(loc='lower right')
 plt.grid()
 plt.show()
 plt.savefig(f'netpipe_{MMSG}_overview.pdf')
@@ -125,7 +130,7 @@ for msg in [64/1000.0, MMSG/1000.0, 65536/1000.0, 524288/1000.0]:
     msg_list.append(row_best_tput['msg'])
     tput_list.append(row_best_tput['tput_mean'])
     tput_err_list.append(row_best_tput['tput_std'])
-    label_list.append(f"({row_best_tput['itr']}, {row_best_tput['dvfs']}, *)")    
+    label_list.append(f"({row_best_tput['itr']}, {row_best_tput['dvfs']}, *)")
     if msg == MMSG/1000.0:
         bconf[row_best_tput['sys']] = [row_best_tput['itr'], row_best_tput['dvfs']]
     
@@ -176,12 +181,16 @@ plt.grid()
 plt.savefig('netpipe_tput.pdf')
 plt.show()
 
+'''
 ### timeline plot prep
 for dbest in [dld, dlt, det]:
     b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
     bconf[b['sys']] = [b['itr'], b['dvfs']]
 print(bconf)
-bconf['linux_tuned'] = [0, '0x1500']
+
+if MMSG == 8192:
+    bconf['linux_tuned'] = [8, '0x1900']
+#bconf['linux_tuned'] = [0, '0x1500']
 #bconf['linux_tuned'] = [12, '0x1500']
 
 ddfs = {}
@@ -221,7 +230,8 @@ for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddvfs = bconf[dsys][1]
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
-    
+
+    print(dsys)
     plt.plot(ddfn['timestamp_non0'], ddfn['joules'], LINES[dsys], c=COLORS[dsys])
     plt.plot(ddfn['timestamp_non0'].iloc[0], ddfn['joules'].iloc[0], HATCHS[dsys], c=COLORS[dsys])
     plt.plot(ddfn['timestamp_non0'].iloc[-1], ddfn['joules'].iloc[-1], HATCHS[dsys], c=COLORS[dsys])
@@ -307,7 +317,7 @@ ax.set_xticklabels(metric_labels, rotation=15)
 plt.legend()
 #plt.legend(loc='lower left')
 plt.savefig(f'netpipe_{MMSG}_barplot.pdf')
-    
+'''    
         
 '''
 det = df[(df['sys']=='ebbrt_tuned')].copy()
