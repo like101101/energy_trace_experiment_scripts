@@ -1,4 +1,3 @@
-
 import re
 import os
 from os import path
@@ -11,7 +10,6 @@ if len(sys.argv) != 2:
     exit()
 loc = sys.argv[1]
 
-'''
 dvfs = ["0xd00",
         "0xf00",
         "0x1100",
@@ -19,14 +17,12 @@ dvfs = ["0xd00",
         "0x1500",
         "0x1700",
         "0x1900",
+        "0x1a00",
         "0x1b00",
         "0x1d00",
         "0xffff"]
-'''
-#itrs = ["1", "2", "4", "6", "8", "12", "16", "20", "24", "28", "32", "36", "40", "50", "60", "70", "80"]
 
-dvfs=["0xffff"]
-itrs=["1"]
+itrs = ["0", "1", "2", "4", "6", "8", "12", "16", "20", "24", "28", "32", "36", "40", "50", "60", "70", "80"]
 rapls = ["135", "95", "75", "55"]
 iters = 10
 
@@ -91,27 +87,27 @@ for rapl in rapls:
                         df = df[df['timestamp'] <= END_RDTSC]
                         
                         df['timestamp'] = df['timestamp'] - df['timestamp'].min()
-                        df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
-                        
+                        df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz                        
                         df['timestamp_diff'] = df['timestamp'].diff()
-                        df['instructions_diff'] = df['instructions'].diff()
-                        df['cycles_diff'] = df['cycles'].diff()
-                        df['ref_cycles_diff'] = df['ref_cycles'].diff()
-                        df['llc_miss_diff'] = df['llc_miss'].diff()
+                        
+                        #df['instructions_diff'] = df['instructions'].diff()
+                        #df['cycles_diff'] = df['cycles'].diff()
+                        #df['ref_cycles_diff'] = df['ref_cycles'].diff()
+                        #df['llc_miss_diff'] = df['llc_miss'].diff()
                         df.dropna(inplace=True)
 
                         df_non0j = df[(df['joules']>0) & (df['instructions'] > 0) & (df['cycles'] > 0) & (df['ref_cycles'] > 0) & (df['llc_miss'] > 0)].copy()
-                        df_non0j['joules'] = df_non0j['joules'] * JOULE_CONVERSION
-                        tmp = df_non0j[['joules', 'c1', 'c1e', 'c3', 'c6', 'c7']].diff()
+                        df_non0j['joules'] = df_non0j['joules'] * JOULE_CONVERSION                             
+                        tmp = df_non0j[['instructions', 'cycles', 'ref_cycles', 'llc_miss', 'joules', 'c1', 'c1e', 'c3', 'c6', 'c7']].diff()
                         tmp.columns = [f'{c}_diff' for c in tmp.columns]
-                        df_non0j = pd.concat([df_non0j, tmp], axis=1)
-                        df_non0j.dropna(inplace=True)
+                        df_non0j = pd.concat([df_non0j, tmp], axis=1)                        
                         df_non0j = df_non0j[df_non0j['joules_diff'] > 0]
-
+                        df_non0j.dropna(inplace=True)
+                        
                         pname=""
                         if itr == "1" and d == "0xffff":
                             pname="linux_default"
                         else:
                             pname="linux_tuned"
                             
-                        print(f"{pname} {i} {itr} {d} {rapl} {lat_us_50} {lat_us_75} {lat_us_90} {lat_us_99} {total_requests} {round(df['timestamp_diff'].sum(), 3)} {round(df_non0j['joules_diff'].sum(), 2)} {int(df['rx_desc'].sum())} {int(df['rx_bytes'].sum())} {int(df['tx_desc'].sum())} {int(df['tx_bytes'].sum())} {int(df['instructions_diff'].sum())} {int(df['cycles_diff'].sum())} {int(df['ref_cycles_diff'].sum())} {int(df['llc_miss_diff'].sum())} {int(df_non0j['c1_diff'].sum())} {int(df_non0j['c1e_diff'].sum())} {int(df_non0j['c3_diff'].sum())} {int(df_non0j['c6_diff'].sum())} {int(df_non0j['c7_diff'].sum())} {df.shape[0]}")                        
+                        print(f"{pname} {i} {itr} {d} {rapl} {lat_us_50} {lat_us_75} {lat_us_90} {lat_us_99} {total_requests} {round(df['timestamp_diff'].sum(), 3)} {round(df_non0j['joules_diff'].sum(), 2)} {int(df['rx_desc'].sum())} {int(df['rx_bytes'].sum())} {int(df['tx_desc'].sum())} {int(df['tx_bytes'].sum())} {int(df_non0j['instructions_diff'].sum())} {int(df_non0j['cycles_diff'].sum())} {int(df_non0j['ref_cycles_diff'].sum())} {int(df_non0j['llc_miss_diff'].sum())} {int(df_non0j['c1_diff'].sum())} {int(df_non0j['c1e_diff'].sum())} {int(df_non0j['c3_diff'].sum())} {int(df_non0j['c6_diff'].sum())} {int(df_non0j['c7_diff'].sum())} {df.shape[0]}")                        

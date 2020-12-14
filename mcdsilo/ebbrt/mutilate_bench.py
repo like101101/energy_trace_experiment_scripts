@@ -139,9 +139,8 @@ def runBenchEbbRT(mqps):
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "stop,0")
 
     #localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "dumpinfo,0")
-
     ## normalize settings for retrieving logs
-    localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "rx_usecs,8")
+    localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "rx_usecs,10")
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "dvfs,"+str(int('0x1d00', 0)))
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "rapl,135")
         

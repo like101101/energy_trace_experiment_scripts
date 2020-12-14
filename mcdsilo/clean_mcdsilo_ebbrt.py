@@ -13,12 +13,9 @@ if len(sys.argv) != 2:
     exit()
 loc = sys.argv[1]
 
-
 dvfs = ["0xd00",
         "0xf00",
-        "0x1000",
         "0x1100",
-        "0x1200",
         "0x1300",
         "0x1400",
         "0x1500",
@@ -31,15 +28,9 @@ dvfs = ["0xd00",
         "0x1c00",
         "0x1d00"]
     
-itrs = ["50", "60", "70", "80", "90", "100", "200", "300", "400"]
+itrs = ["10", "20", "30", "40", "50", "100", "200", "300", "400"]
 rapls = ["135", "95", "75", "55"]
 qpss = ["50000", "100000", "200000", "400000", "600000"]
-
-
-#dvfs=["0x1900"]
-#itrs=["100"]
-#rapls=["95"]
-#qpss=["200000"]
 
 iters = 10
 possible_qps_vals = np.array([50000, 100000, 200000, 400000, 600000])
@@ -182,6 +173,7 @@ for d in dvfs:
                             df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
                             df['timestamp'] = df['timestamp'] - df['timestamp'].min()
                             df = df[df['timestamp'] <= 20.0]
+                            
                             df['timestamp_diff'] = df['timestamp'].diff()
                             df.dropna(inplace=True)
                             

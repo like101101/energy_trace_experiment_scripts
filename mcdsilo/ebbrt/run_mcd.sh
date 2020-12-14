@@ -1,11 +1,8 @@
 #! /bin/bash
 
-export RXU=${RXU:='8'}
-export RXQ=${RXQ:='512'}
-export TXQ=${TXQ:='512'}
-export NITERS=${NITERS:='2'}
+export NITERS=${NITERS:='1'}
 export SERVER=${SERVER:=192.168.1.230}
-export OUTFILE=${OUTFILE:=0}
+export BEGIN_ITER=${BEGIN_ITER:="0"}
 #export MQPS=${MQPS:='100000 200000 400000 600000 800000 900000'}
 #export ITRS=${ITRS:-"100 200 400"}
 #export MDVFS=${MDVFS:="0x1c00 0x1a00 0x1800 0x1600 0x1400 0x1200 0x1000 0xe00 0xc00"}
@@ -14,10 +11,9 @@ export OUTFILE=${OUTFILE:=0}
 #export MRAPL=${MRAPL:-"135 105 75 45"}
 #export MDVFS=${MDVFS:="0x1d00 0x1c00 0x1b00 0x1a00 0x1900 0x1800 0x1700 0x1600 0x1500 0x1400 0x1300 0x1200 0x1100 0x1000 0xf00 0xe00 0xd00 0xc00"}
 #export MDVFS=${MDVFS:="0x1d00 0x1c00 0x1b00 0x1a00 0x1900 0x1800"}
-export MDVFS=${MDVFS:="0x1c00 0x1b00 0x1a00 0x1900 0x1800"}
+export MDVFS=${MDVFS:="0x1d00 0x1b00 0x1900 0x1700 0x1500 0x1300 0x1100 0xf00 0xd00"}
 export MQPS=${MQPS:='50000 100000 200000'}
 export ITRS=${ITRS:-"25 50 100 150 200"}
-export RITRS=${RITRS:-"50 100 200 300 400"}
 export MRAPL=${MRAPL:-"135 95 75 55"}
 
 currdate=`date +%m_%d_%Y_%H_%M_%S`
@@ -30,19 +26,15 @@ function runMutilateBench
 function reboot
 {
     echo "reboot"
+    ssh 192.168.1.11 pkill mutilate
+    ssh 192.168.1.37 pkill mutilate
+    ssh 192.168.1.38 pkill mutilate
     ssh handong@10.255.0.1 hil node power cycle neu-5-9
-    sleep 1
+    sleep 600
     success=1
-    for iwait in `seq 0 1 10`;
-    do
-        echo "reboot waiting ${iwait}"
-	if alive; then
-	    success=0
-	    sleep 60
-	    break	    
-        fi
-	sleep 60
-    done
+    if alive; then
+	success=0
+    fi
     return $success
 }
 
@@ -56,6 +48,16 @@ function alive
     fi
 }
 
+function testSize
+{
+    output=$(wc -c ebbrt_out.1_50_0x1d00_135_50000 | awk '{print $1}')
+    if (( $output > 100 )); then
+	echo "filesize ${output} good"
+    else
+	echo "filesize ${output} bad"
+    fi
+}
+
 function runEbbRT
 {
     echo "runEbbRT"
@@ -64,43 +66,75 @@ function runEbbRT
     echo "MRAPL ${MRAPL}"
     echo "NITERS ${NITERS}"
     echo "MQPS ${MQPS}"
-    
+    echo "mkdir ${currdate}"
+    mkdir ${currdate}
+    mkdir "${currdate}_sla_violations"
+
     for dvfs in ${MDVFS}; do
 	for itr in $ITRS; do
-	    for qps in ${MQPS}; do	    
+	    for qps in ${MQPS}; do
 		for r in ${MRAPL}; do
-		    for nrepeat in `seq 0 1 $NITERS`; do
-			# try two times
-			for rerun in `seq 0 1 1`; do
+		    for nrepeat in `seq $BEGIN_ITER 1 $NITERS`; do
+			# try 3 times
+			for rerun in `seq 0 1 2`; do
 			    sleep 1
 			    runBench=1
 			    benchSuccess=1
 			    
 			    if alive; then
-				echo "alive"
+				echo "alive ${rerun}"
 				runBench=0
 			    else
-				echo "dead"
+				echo "dead ${rerun}"
 
-				if reboot; then	    
-				    runBench=0
-
-				    ## preload fb_key and fb_value
-				    ssh 192.168.1.11 /app/mutilate/mutilate --binary -s 192.168.1.9 --loadonly -K fb_key -V fb_value
-				    sleep 1				    
-				    
-				    echo "reboot success"
+				if reboot; then
+				    if alive; then	    
+					## warmup run
+					runMutilateBench --qps 10000 --time 5 --itr 50 --rapl 135 --dvfs 0x1d00 --nrepeat 0
+					
+					if alive; then
+					    ssh 192.168.1.11 pkill mutilate
+					    ssh 192.168.1.37 pkill mutilate
+					    ssh 192.168.1.38 pkill mutilate
+					    runBench=0
+					fi
+				    fi
+				    				    
+				    echo "reboot success ${rerun}"
 				fi
 			    fi
 			    
 			    if [[ ${runBench} -eq 0  ]]; then		
 				echo "runMutilateBench --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${nrepeat}"
 				runMutilateBench --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${nrepeat}
+				sleep 1
 				if alive; then
-				    benchSuccess=0
+				    rritr=$(( ${itr}*2 ))
+				    output=$(wc -c "ebbrt_out.${nrepeat}_${rritr}_${dvfs}_${r}_${qps}" | awk '{print $1}')
+				    if (( $output > 100)); then
+					echo "filesize == ${output} good"
+					read_99th=$(sed -n 2p "ebbrt_out.${nrepeat}_${rritr}_${dvfs}_${r}_${qps}" | awk '{ print $10 }')
+				        read_99th_int=${read_99th%.*}
+
+					if (( $read_99th_int <= 500 )); then
+					    benchSuccess=0
+					else
+					    echo "ebbrt_out.${nrepeat}_${rritr}_${dvfs}_${r}_${qps} read_99=${read_99th_int} > 500, skipping log data"
+					    mv "ebbrt_out.${nrepeat}_${rritr}_${dvfs}_${r}_${qps}" "${currdate}_sla_violations/"
+					    pkill socat
+					    break
+					fi
+					
+				    else
+					echo "filesize == ${output} bad, rebooting"
+					rm "ebbrt_out.${nrepeat}_${rritr}_${dvfs}_${r}_${qps}"
+					reboot
+				    fi
+				    
 				fi
 			    fi
 
+			    ## made it to this point, get log data
 			    ritr=$(( ${itr}*2 ))
 			    if [[ ${benchSuccess} -eq 0  ]]; then
 				echo "rdtsc,0" | socat - TCP4:192.168.1.9:5002 > ebbrt_rdtsc.${nrepeat}_${ritr}_${dvfs}_${r}_${qps}
@@ -112,11 +146,15 @@ function runEbbRT
 				    sleep 1
 				    rm -f ebbrt_dmesg.${nrepeat}_${c}_${ritr}_${dvfs}_${r}_${qps}
 				    echo "ebbrt_dmesg.${nrepeat}_${c}_${ritr}_${dvfs}_${r}_${qps}.csv"
+				    mv ebbrt_* ${currdate}/
+				    sleep 1
 				done
 				
 				if alive; then
+				    pkill socat
 				    break
 				else
+				    pkill socat
 				    echo "**** ebbrt_dmesg.${nrepeat}_${ritr}_${dvfs}_${r}_${qps} get log error"
 				fi				
 			    else
@@ -135,11 +173,55 @@ function runEbbRT
 
 function runEbbRTpart
 {
+
+    MDVFS="0x1700" MQPS="50000 100000" ITRS="5 10 15 20" MRAPL="135 75 55" NITERS="0" runEbbRT    
+    MDVFS="0x1300 0x1500 x1700 0x1900" MQPS="200000" ITRS="5 10 15 20" MRAPL="135 75 55" NITERS="0" runEbbRT
+    
+   # MDVFS="0x1500" MQPS="200000" ITRS="50" MRAPL="135" NITERS="7" runEbbRT
+    #MDVFS="0x1400" MQPS="200000" ITRS="50" MRAPL="135" NITERS="7" runEbbRT
+    #MDVFS="0x1500" MQPS="200000" ITRS="25" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0x1800" MQPS="200000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1900" MQPS="200000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1a00" MQPS="200000" ITRS="25" MRAPL="75" NITERS="7" runEbbRT
+    #MDVFS="0x1c00" MQPS="200000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1b00" MQPS="200000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1d00" MQPS="200000" ITRS="25" MRAPL="135" NITERS="7" runEbbRT
+    #MDVFS="0x1a00" MQPS="200000" ITRS="150" MRAPL="135" NITERS="7" runEbbRT
+
+
+    #MDVFS="0x1a00" MQPS="100000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1b00" MQPS="100000" ITRS="25" MRAPL="75" NITERS="7" runEbbRT
+    #MDVFS="0x1700" MQPS="100000" ITRS="25" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0x1500" MQPS="100000" ITRS="25" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0x1500" MQPS="100000" ITRS="25" MRAPL="75" NITERS="7" runEbbRT
+    #MDVFS="0x1300" MQPS="100000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1300" MQPS="100000" ITRS="100" MRAPL="75" NITERS="7" runEbbRT
+    #MDVFS="0x1b00" MQPS="100000" ITRS="100" MRAPL="75" NITERS="7" runEbbRT
+    #MDVFS="0x1d00" MQPS="100000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1d00" MQPS="100000" ITRS="50" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0x1900" MQPS="100000" ITRS="50" MRAPL="135" NITERS="7" runEbbRT
+    #MDVFS="0x1900" MQPS="100000" ITRS="50" MRAPL="95" NITERS="7" runEbbRT
+
+    #MDVFS="0x1500" MQPS="50000" ITRS="25" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0xf00" MQPS="50000" ITRS="25" MRAPL="55" NITERS="7" runEbbRT
+    #MDVFS="0xf00" MQPS="50000" ITRS="25" MRAPL="95" NITERS="7" runEbbRT
+    #MDVFS="0x1b00" MQPS="50000" ITRS="50" MRAPL="95" NITERS="7" runEbbRT
+    
     #runMutilateBench --qps 200000 --time 20 --itr 200 --rapl 95 --dvfs 0x1800 --nrepeat 0
-    MDVFS="0x1800" ITRS="100" MQPS="200000" MRAPL="95" NITERS="2" runEbbRT
-    sleep 1
-    #MDVFS="0x1800" ITRS="25 50 100 150 200" MQPS="50000 100000 200000" MRAPL="135 95 75 55" runEbbRT
+    #MDVFS="0x1d00 0x1b00 0x1900 0x1700 0x1500 0x1300 0x1100 0xf00 0xd00" MQPS="50000" ITRS="25 50 100 150" MRAPL="135 95 75 55" NITERS="2" runEbbRT
+
+    #MDVFS="0x1d00 0x1b00 0x1900 0x1700 0x1500 0x1300 0x1100" MQPS="100000" ITRS="25 50 100 150" MRAPL="135 95 75 55" NITERS="2" runEbbRT
+
+    #MDVFS="0x1d00 0x1b00 0x1900 0x1700 0x1500 0x1300" MQPS="200000" ITRS="25 50 100 150" MRAPL="135 95 75 55" NITERS="2" runEbbRT
+    
     #sleep 1
+    #MDVFS="0x1c00" ITRS="50" MQPS="50000" MRAPL="135 95 75 55" NITERS="8" runEbbRT
+    #sleep 1
+    
+    #MDVFS="0x1800" ITRS="150" MQPS="100000" MRAPL="135 95 75 55" NITERS="8" runEbbRT
+    #sleep 1
+    #MDVFS="0x1c00" ITRS="25" MQPS="100000" MRAPL="135 95 75 55" NITERS="8" runEbbRT
+    #sleep 1    
     
     #MDVFS="0x1800" ITRS="25 50 100 150 200" MQPS="200000" MRAPL="95" runEbbRT
     #50000 100000 200000

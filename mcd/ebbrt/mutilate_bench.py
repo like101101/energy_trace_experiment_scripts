@@ -685,20 +685,29 @@ def runBenchEbbRT(mqps):
     #    print("ebbrtAlive == False, exiting ...")
     #    return
 
-    runRemoteCommandGet("pkill mutilate", "192.168.1.138")
-    runRemoteCommandGet("pkill mutilate", "192.168.1.131")
-    runRemoteCommandGet("pkill mutilate", "192.168.1.14")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.138")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.131")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.14")
+    runRemoteCommandGet("pkill mutilate", "192.168.1.104")
+    runRemoteCommandGet("pkill mutilate", "192.168.1.106")
+    runRemoteCommandGet("pkill mutilate", "192.168.1.107")
+    
     runRemoteCommandGet("pkill mutilate", "192.168.1.38")
     runRemoteCommandGet("pkill mutilate", "192.168.1.37")
     runRemoteCommandGet("pkill mutilate", "192.168.1.11")
     time.sleep(1)
     print("pkill mutilate done")
     
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.14")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.14")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.138")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=12", "192.168.1.131")
+    
     runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.37")
     runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.38")
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.138")
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=12", "192.168.1.131")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.104")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.106")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.107")
+    
     time.sleep(5)    
     print("mutilate agentmode done")
     
@@ -710,7 +719,7 @@ def runBenchEbbRT(mqps):
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "clear,0")
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "start,0")
     
-    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.138,192.168.1.131,192.168.1.14,192.168.1.38,192.168.1.37 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")
+    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.104,192.168.1.106,192.168.1.107,192.168.1.37,192.168.1.38 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")
     localout = runLocalCommandGet("socat - TCP4:192.168.1.9:5002", "stop,0")
 
     ## normalize settings for retrieving logs

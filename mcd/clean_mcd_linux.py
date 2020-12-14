@@ -12,7 +12,10 @@ if len(sys.argv) != 2:
     exit()
 loc = sys.argv[1]
 
-'''
+#dvfs = ["0xd00",
+#        "0xf00"]
+
+
 dvfs = ["0xd00",
         "0xf00",
         "0x1100",
@@ -27,18 +30,31 @@ dvfs = ["0xd00",
         "0x1b00",
         "0x1c00",
         "0x1d00"]
-    
-itrs = ["50", "100", "200", "300", "350", "400"]
+
+'''
+dvfs = ["0x1100",
+        "0x1200",
+        "0x1300",
+        "0x1400",
+        "0x1500",
+        "0x1700",
+        "0x1800",
+        "0x1900",
+        "0x1a00",
+        "0x1b00",
+        "0x1c00",
+        "0x1d00"]
+'''
+itrs = ["2", "10", "20", "30", "40", "50", "100", "200", "300", "350", "400"]
 rapls = ["135", "95", "75", "55"]
 qpss = ["200000", "400000", "600000"]
-'''
 
-dvfs=["0x1d00"]
-itrs=["400"]
-rapls = ["135"]
-qpss = ["600000"]
+#dvfs=["0x1d00"]
+#itrs=["50"]
+#rapls = ["135"]
+#qpss = ["200000"]
 
-iters = 1
+iters = 10
 possible_qps_vals = np.array([200000, 400000, 600000])
 LINUX_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7', 'joules', 'timestamp']
 
@@ -125,12 +141,12 @@ def parseRdtsc(i, itr, d, rapl, q):
 def exists(i, itr, d, rapl, q):
     outf = f'{loc}/linux.mcd.out.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
     if not path.exists(outf):
-        print(outf)
+        #print(outf)
         return False
     
     rf = f'{loc}/linux.mcd.rdtsc.'+str(i)+'_'+itr+'_'+d+'_'+rapl+'_'+q
     if not path.exists(rf):
-        print(rf)
+        #print(rf)
         return False
 
     for core in range(0, 16):
@@ -140,7 +156,7 @@ def exists(i, itr, d, rapl, q):
             return False
     return True                    
         
-print("sys i itr dvfs rapl measure_QPS target_QPS time joule instructions cycles ref_cycles llc_miss c1 c1e c3 c6 c7 read_5th read_10th read_50th read_90th read_95th read_99th num_interrupts")
+print("sys i itr dvfs rapl read_5th read_10th read_50th read_90th read_95th read_99th measure_QPS target_QPS time joules rx_desc rx_bytes tx_desc tx_bytes instructions cycles ref_cycles llc_miss c1 c1e c3 c6 c7 num_interrupts")
 for d in dvfs:
     for itr in itrs:
         for qps in qpss:

@@ -15,20 +15,23 @@ loc = sys.argv[1]
 
 dvfs = ["0xd00",
         "0xf00",
+        "0x1000",
         "0x1100",
         "0x1200",
         "0x1300",
         "0x1400",
         "0x1500",
+        "0x1600",
         "0x1700",
         "0x1800",
         "0x1900",
         "0x1a00",
         "0x1b00",
         "0x1c00",
-        "0x1d00"]
+        "0x1d00",
+        "0xffff"]
 
-itrs = ["1", "50", "100", "200", "300", "400"]
+itrs = ["1", "10", "20", "30", "40", "50", "100", "200", "300", "400"]
 rapls = ["135", "95", "75", "55"]
 qpss = ["50000", "100000", "200000", "400000", "600000"]
 
@@ -37,7 +40,7 @@ qpss = ["50000", "100000", "200000", "400000", "600000"]
 #rapls = ["135"]
 #qpss = ["200000"]
 
-iters = 10
+iters = 5
 possible_qps_vals = np.array([50000, 100000, 200000, 400000, 600000])
 LINUX_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7', 'joules', 'timestamp']
 
@@ -175,9 +178,8 @@ for d in dvfs:
                             df = df[df['timestamp'] >= START_RDTSC]
                             df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
                             df['timestamp'] = df['timestamp'] - df['timestamp'].min()
-                            df['timestamp_diff'] = df['timestamp'].diff()
-                            
                             df = df[df['timestamp'] <= 20.0]
+                            df['timestamp_diff'] = df['timestamp'].diff()                            
                             df.dropna(inplace=True)
                             
                             df_non0j = df[(df['joules']>0) & (df['instructions'] > 0) & (df['cycles'] > 0) & (df['ref_cycles'] > 0) & (df['llc_miss'] > 0)].copy()                        
@@ -210,6 +212,7 @@ for d in dvfs:
                             tc7 += df_non0j['c7_diff'].sum()
                             tnum_interrupts += df.shape[0]
                             tdiff = math.ceil(df['timestamp_diff'].sum())
+
                             
                             if itr == "1" and d == "0xffff":
                                 poutname="default"

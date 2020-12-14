@@ -1,9 +1,12 @@
 #! /bin/bash
 
+currdate=`date +%m_%d_%Y_%H_%M_%S`
+
 export RXU=${RXU:='8'}
 export RXQ=${RXQ:='512'}
 export TXQ=${TXQ:='512'}
 export NITERS=${NITERS:='2'}
+export BEGIN_ITER=${BEGIN_ITER:='0'}
 export SERVER=${SERVER:=192.168.1.230}
 export OUTFILE=${OUTFILE:=0}
 #export MQPS=${MQPS:='100000 200000 400000 600000 800000 900000'}
@@ -14,12 +17,10 @@ export OUTFILE=${OUTFILE:=0}
 #export MRAPL=${MRAPL:-"135 105 75 45"}
 
 export MDVFS=${MDVFS:="0x1d00 0x1b00 0x1900 0x1700 0x1500 0x1300 0x1100 0xf00 0xd00"}
-#export MDVFS=${MDVFS:="0x1d00 0x1b00 0x1900 0x1700"}
 export MQPS=${MQPS:='200000 400000 600000'}
-export ITRS=${ITRS:-"50 100 200 300 400"}
-export MRAPL=${MRAPL:-"135 95 55"}
-
-currdate=`date +%m_%d_%Y_%H_%M_%S`
+export ITRS=${ITRS:-"50 100 200 250 300 350 400"}
+#ITRS="2 10 20 30 40"
+export MRAPL=${MRAPL:-"135 95 75 55"}
 
 function runMutilateBench
 {
@@ -31,14 +32,14 @@ function runASPLOStest
     echo "runASPLOStest"
     
     #warm up
-    runMutilateBench --bench mcd --qps 200000 --time 30 --itr 300 --rapl 135 --dvfs 0x1500 --nrepeat 0
+    runMutilateBench --bench mcd --qps 200000 --time 20 --itr 300 --rapl 135 --dvfs 0x1500 --nrepeat 0
 
     for itr in 300 400; do	    
 	for qps in 200000 400000 600000; do	    	    
 	    for r in 135 95 55; do	
 		for i in `seq 0 1 $NITERS`; do
-		    echo "runMutilateBench --bench mcd --qps ${qps} --time 30 --itr ${itr} --rapl ${r} --dvfs 0x1500 --nrepeat ${i}"
-		    runMutilateBench --bench mcd --qps ${qps} --time 30 --itr ${itr} --rapl ${r} --dvfs 0x1500 --nrepeat ${i}
+		    echo "runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs 0x1500 --nrepeat ${i}"
+		    runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs 0x1500 --nrepeat ${i}
 		    sleep 1
 		done
 	    done
@@ -55,17 +56,21 @@ function runASPLOS
     echo "MQPS ${MQPS}"
     echo "MRAPL ${MRAPL}"
     echo "NITERS ${NITERS}"
-
+    echo "mkdir ${currdate}"
+    mkdir ${currdate}
+    
     #runASPLOStest
     
     for dvfs in ${MDVFS}; do
 	for itr in $ITRS; do	    
 	    for qps in ${MQPS}; do	    	    
 		for r in ${MRAPL}; do				
-			for i in `seq 0 1 $NITERS`; do
-			echo "runMutilateBench --bench mcd --qps ${qps} --time 30 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}"
-		        runMutilateBench --bench mcd --qps ${qps} --time 30 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}
+		    for i in `seq ${BEGIN_ITER} 1 $NITERS`; do			
+		        runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}
 			sleep 1
+			mv linux.mcd.* ${currdate}/
+			sleep 1
+			echo "FINISHED: runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}"
 		    done
 		done
 	    done
@@ -75,9 +80,22 @@ function runASPLOS
 
 function runASPLOSpart
 {
-    MDVFS="0xd00" ITRS="300" MQPS="200000" MRAPL="55" NITERS="2" runASPLOS    
-    MDVFS="0xd00" ITRS="300" MQPS="400000" MRAPL="95" NITERS="2" runASPLOS    
-    MDVFS="0x1100" ITRS="300" MQPS="600000" MRAPL="95" NITERS="2" runASPLOS
+    #ITRS="2 10 20 30 40" MRAPL="135 75 55" NITERS="0" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1300" ITRS="10" MQPS="200000" MRAPL="55" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1500 0x1700" ITRS="2" MQPS="200000" MRAPL="55" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1300 0x1700" ITRS="2" MQPS="200000" MRAPL="75" NITERS="3" runASPLOS
+
+    BEGIN_ITER="1" MDVFS="0x1900 0x1b00" ITRS="10" MQPS="400000" MRAPL="75" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1900" ITRS="2" MQPS="400000" MRAPL="75 55" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1700" ITRS="10" MQPS="400000" MRAPL="75" NITERS="3" runASPLOS
+
+    BEGIN_ITER="1" MDVFS="0x1d00" ITRS="30" MQPS="600000" MRAPL="135 75" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1b00" ITRS="40" MQPS="600000" MRAPL="135 75" NITERS="3" runASPLOS
+    BEGIN_ITER="1" MDVFS="0x1d00" ITRS="40" MQPS="600000" MRAPL="135" NITERS="3" runASPLOS
+    
+    #MDVFS="0xd00" ITRS="300" MQPS="200000" MRAPL="55" NITERS="2" runASPLOS    
+    #MDVFS="0xd00" ITRS="300" MQPS="400000" MRAPL="95" NITERS="2" runASPLOS    
+    #MDVFS="0x1100" ITRS="300" MQPS="600000" MRAPL="95" NITERS="2" runASPLOS
 }
 
 function runASPLOSgov
@@ -86,13 +104,17 @@ function runASPLOSgov
     echo "MQPS ${MQPS}"
     echo "MRAPL ${MRAPL}"
     echo "NITERS ${NITERS}"
+    echo "mkdir ${currdate}"
+    mkdir ${currdate}
     
     for qps in ${MQPS}; do	    	    
 	for r in ${MRAPL}; do				
-	    for i in `seq 0 1 $NITERS`; do
-		echo "runMutilateBench --bench mcd --qps ${qps} --time 30 --rapl ${r} --nrepeat ${i}"
-		runMutilateBench --bench mcd --qps ${qps} --time 30 --rapl ${r} --nrepeat ${i}
+	    for i in `seq 0 1 $NITERS`; do		
+		runMutilateBench --bench mcd --qps ${qps} --time 20 --rapl ${r} --nrepeat ${i}
 		sleep 1
+		mv linux.mcd.* ${currdate}/
+		sleep 1
+		echo "FINISHED: runMutilateBench --bench mcd --qps ${qps} --time 20 --rapl ${r} --nrepeat ${i}"
 	    done
 	done
     done
@@ -112,8 +134,8 @@ function runASPLOSitr
 	for qps in ${MQPS}; do	    	    
 	    for r in ${MRAPL}; do				
 		for i in `seq 0 1 $NITERS`; do
-		    echo "runMutilateBench --bench mcd --qps ${qps} --time 30 --itr 1 --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}"
-		    runMutilateBench --bench mcd --qps ${qps} --time 30 --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}
+		    echo "runMutilateBench --bench mcd --qps ${qps} --time 20 --itr 1 --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}"
+		    runMutilateBench --bench mcd --qps ${qps} --time 20 --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}
 		    sleep 1
 		done
 	    done
@@ -426,7 +448,7 @@ function runOvernight
 	let "rapl = (($RANDOM % 45) * 2) + 40"
 
 	#echo $mqps $itr $rapl
-	ITERS='1' MQPS=$mqps runMQPSLocal --bench='mcd' --time=30 --itr=$itr --rapl=$rapl --type='usr' --verbose 1
+	ITERS='1' MQPS=$mqps runMQPSLocal --bench='mcd' --time=20 --itr=$itr --rapl=$rapl --type='usr' --verbose 1
 	
 	#let "counter = counter + 1"
 	#if [ $counter = 2 ]; then

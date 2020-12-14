@@ -28,14 +28,12 @@ dvfs = ["0xd00",
         "0x1c00",
         "0x1d00"]
     
-itrs = ["50", "100", "200", "300", "350", "400"]
+itrs = ["2", "10", "20", "30", "40", "50", "100", "200", "300", "400"]
 rapls = ["135", "95", "75", "55"]
-qpss = ["50000", "100000", "200000", "400000", "600000", "800000", "1000000", "1200000", "1400000", "1600000", "1800000", "20000000", "2200000"]
-#qpss = ["800000", "1000000", "1200000", "1400000", "1600000", "1800000", "20000000", "2200000"]
+qpss = ["50000", "100000", "200000", "400000", "600000"]
 
 iters = 10
-possible_qps_vals = np.array([50000, 100000, 200000, 400000, 600000, 800000, 1000000, 1200000, 1400000, 1600000, 1800000, 20000000, 2200000])
-#possible_qps_vals = np.array([800000, 1000000, 1200000, 1400000, 1600000, 1800000, 20000000, 2200000])
+possible_qps_vals = np.array([50000, 100000, 200000, 400000, 600000])
 EBBRT_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c3', 'c6', 'c7', 'joules', 'timestamp']
 
 TIME_CONVERSION_khz = 1./(2899999*1000)
@@ -133,7 +131,7 @@ for d in dvfs:
     for itr in itrs:
         for qps in qpss:
             for rapl in rapls:            
-                for i in range(1, iters):
+                for i in range(0, iters):
                     if exists(i, itr, d, rapl, qps) == True:
                         START_RDTSC = 0
                         END_RDTSC = 0

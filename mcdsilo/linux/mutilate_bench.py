@@ -107,31 +107,48 @@ def setRAPL(v):
 
 def setDVFS(v):
     global DVFS
-    p1 = Popen(["ssh", CSERVER2, "wrmsr -a 0x199", v], stdout=PIPE, stderr=PIPE)
-    p1.communicate()
-    time.sleep(0.5)
+    p1 = Popen(["ssh", CSERVER2, "wrmsr -p 15 0x199", "0xc00"], stdout=PIPE, stderr=PIPE)
+    p1.communicate()        
+    #p1 = Popen(["ssh", CSERVER2, "wrmsr -a 0x199", v], stdout=PIPE, stderr=PIPE)
+    for i in range(0, 15):
+        wcom=f'wrmsr -p {i} 0x199'
+        p1 = Popen(["ssh", CSERVER2, wcom, v], stdout=PIPE, stderr=PIPE)
+        p1.communicate()
     DVFS = v
     
 def cleanLogs():
-    for i in range(1, 16):                    
-        runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
-        runRemoteCommandGet("dmesg -C", "192.168.1.9")
+    #for i in range(1, 16):                    
+    #    runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
+    #    runRemoteCommandGet("dmesg -C", "192.168.1.9")
+    #    if VERBOSE:
+    #        print("cleanLogs", i)
+    for i in range(0, 15):
+        runRemoteCommandGet("cat /proc/ixgbe_stats/core/"+str(i)+" &> /dev/null", "192.168.1.9")
         if VERBOSE:
             print("cleanLogs", i)
             
 def printLogs():
-    for i in range(1, 16):
-        runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
-        runRemoteCommandGet("dmesg -c &> /app/mcdsilo_dmesg."+str(i-1), "192.168.1.9")
+    for i in range(0, 15):
+        runRemoteCommandGet("cat /proc/ixgbe_stats/core/"+str(i)+" &> /app/mcdsilo_dmesg."+str(i), "192.168.1.9")
         if VERBOSE:
             print("printLogs", i)
+    #for i in range(1, 16):
+    #    runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
+    #    runRemoteCommandGet("dmesg -c &> /app/mcdsilo_dmesg."+str(i-1), "192.168.1.9")
+    #    if VERBOSE:
+    #        print("printLogs", i)
 
 def getLogs():
-    for i in range(1, 16):
-        runLocalCommandOut("scp -r 192.168.1.9:/app/mcdsilo_dmesg."+str(i-1)+" mcdsilo_dmesg."+str(NREPEAT)+"_"+str(i-1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))       
+    for i in range(0, 15):
+        runLocalCommandOut("scp -r 192.168.1.9:/app/mcdsilo_dmesg."+str(i)+" linux.mcdsilo.dmesg."+str(NREPEAT)+"_"+str(i)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
         if VERBOSE:
             print("getLogs", i)
-    runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcdsilo.rdtsc mcdsilo_rdtsc."+str(NREPEAT)+"_"+str(1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))        
+    runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcdsilo.rdtsc linux.mcdsilo.rdtsc."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
+    #for i in range(1, 16):
+    #    runLocalCommandOut("scp -r 192.168.1.9:/app/mcdsilo_dmesg."+str(i-1)+" mcdsilo_dmesg."+str(NREPEAT)+"_"+str(i-1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))       
+    #    if VERBOSE:
+    #        print("getLogs", i)
+    #runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcdsilo.rdtsc mcdsilo_rdtsc."+str(NREPEAT)+"_"+str(1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))        
     
 def runBenchASPLOS(mqps):
     runRemoteCommandGet("pkill mutilate", "192.168.1.38")
@@ -158,12 +175,12 @@ def runBenchASPLOS(mqps):
     cleanLogs()
     time.sleep(1)
     
-    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.38,192.168.1.37 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")    
+    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.38,192.168.1.37 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")
     
     if VERBOSE:
         print("Finished executing memcached")
         
-    f = open("mcdsilo_out."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS), "w")
+    f = open("linux.mcdsilo.out."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS), "w")
     for line in str(output).strip().split("\\n"):
         #print(line.strip())
         f.write(line.strip()+"\n")
@@ -172,7 +189,7 @@ def runBenchASPLOS(mqps):
     printLogs()
     runRemoteCommands("killall -USR2 silotpcc-linux", "192.168.1.9")
     time.sleep(1)
-    getLogs()    
+    getLogs()
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

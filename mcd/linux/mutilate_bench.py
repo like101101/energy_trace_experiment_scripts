@@ -63,6 +63,13 @@ MOC NODES:
 
    neu-19-33   -> model name	: Intel(R) Xeon(R) CPU E5-2660 0 @ 2.20GHz
 
+   neu-5-9     -> 192.168.1.9
+   neu-3-7     -> 192.168.1.37   Intel(R) Xeon(R) CPU E5-2660 0 @ 2.20GHz        Intel(R) 10 Gigabit PCI Express Network Driver   
+   neu-3-8     -> 192.168.1.38   Intel(R) Xeon(R) CPU E5-2690 0 @ 2.90GHz         
+   bu-23-104   -> 192.168.1.104   Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz       Intel(R) 10 Gigabit Network Connection
+   bu-23-106   -> 192.168.1.106   Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz       Intel(R) 10 Gigabit Network Connection
+   bu-23-107   -> 192.168.1.107   Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz       Intel(R) 10 Gigabit Network Connection
+
 +------------+
 
  192.168.1.201,192.168.1.202,192.168.1.203,192.168.1.204,192.168.1.205
@@ -654,9 +661,10 @@ def runMutilateStatsAll(com):
         return -1.0, 0, 0, 0, 0, 0, 0, 0, 0
 
 def cleanLogs():
-    for i in range(1, 17):                    
-        runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
-        runRemoteCommandGet("dmesg -C", "192.168.1.9")
+    for i in range(0, 16):                    
+        #runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
+        #runRemoteCommandGet("dmesg -C", "192.168.1.9")
+        runRemoteCommandGet("cat /proc/ixgbe_stats/core/"+str(i)+" &> /dev/null", "192.168.1.9")
         if VERBOSE:
             print("cleanLogs", i)
     #runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR 2", "192.168.1.9")
@@ -665,36 +673,47 @@ def cleanLogs():
 def printLogs():
     #runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR 2", "192.168.1.9")
     #runRemoteCommandGet("dmesg -c &> /app/mcd_dmesg.1", "192.168.1.9")
-    for i in range(1, 17):
-        runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
-        runRemoteCommandGet("dmesg -c &> /app/mcd_dmesg."+str(i-1), "192.168.1.9")
+    for i in range(0, 16):
+        #runRemoteCommandGet("/app/ethtool-4.5/ethtool -C eth0 DUMP_DYNAMIC_ITR "+str(i), "192.168.1.9")
+        #runRemoteCommandGet("dmesg -c &> /app/mcd_dmesg."+str(i-1), "192.168.1.9")
+        runRemoteCommandGet("cat /proc/ixgbe_stats/core/"+str(i)+" &> /app/mcd_dmesg."+str(i), "192.168.1.9")
         if VERBOSE:
             print("printLogs", i)
 
 def getLogs():
-    for i in range(1, 17):
-        runLocalCommandOut("scp -r 192.168.1.9:/app/mcd_dmesg."+str(i-1)+" mcd_dmesg."+str(NREPEAT)+"_"+str(i-1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))        
+    for i in range(0, 16):
+        runLocalCommandOut("scp -r 192.168.1.9:/app/mcd_dmesg."+str(i)+" linux.mcd.dmesg."+str(NREPEAT)+"_"+str(i)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))        
         #runLocalCommandOut("gzip -f9 mcd_dmesg."+str(NREPEAT)+"_"+str(i-1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
         if VERBOSE:
             print("getLogs", i)
     #runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcd.rdtsc mcd_rdtsc."+str(NREPEAT)+"_"+str(1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
         #runLocalCommandOut("scp -r 192.168.1.9:/app/mcd_dmesg.1 mcd_dmesg."+str(NREPEAT)+"_"+str(1)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
-    runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcd.rdtsc mcd_rdtsc."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
+    runLocalCommandOut("scp -r 192.168.1.9:/tmp/mcd.rdtsc linux.mcd.rdtsc."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS))
     
 def runBenchASPLOS(mqps):
-    runRemoteCommandGet("pkill mutilate", "192.168.1.138")
-    runRemoteCommandGet("pkill mutilate", "192.168.1.131")
-    runRemoteCommandGet("pkill mutilate", "192.168.1.14")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.138")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.131")
+    #runRemoteCommandGet("pkill mutilate", "192.168.1.14")    
+
+    runRemoteCommandGet("pkill mutilate", "192.168.1.104")
+    runRemoteCommandGet("pkill mutilate", "192.168.1.106")
+    runRemoteCommandGet("pkill mutilate", "192.168.1.107")
+    
+    runRemoteCommandGet("pkill mutilate", "192.168.1.11")
     runRemoteCommandGet("pkill mutilate", "192.168.1.38")
     runRemoteCommandGet("pkill mutilate", "192.168.1.37")
-    runRemoteCommandGet("pkill mutilate", "192.168.1.11")
     time.sleep(1)
     
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.14")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.14")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.138")
+    #runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=12", "192.168.1.131")
+    
     runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.37")
     runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.38")
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.138")
-    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=12", "192.168.1.131")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.104")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.106")
+    runRemoteCommands("/app/mutilate/mutilate --agentmode --threads=16", "192.168.1.107")
+    
     time.sleep(5)
 
     is_running_mcd = runRemoteCommandGet("pgrep memcached", "192.168.1.9")
@@ -708,19 +727,20 @@ def runBenchASPLOS(mqps):
     cleanLogs()
     time.sleep(1)
     
-    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.138,192.168.1.131,192.168.1.14,192.168.1.38,192.168.1.37 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")
+    output = runRemoteCommandGet("taskset -c 0 /app/mutilate/mutilate --binary -s 192.168.1.9 --noload --agent=192.168.1.104,192.168.1.106,192.168.1.107,192.168.1.37,192.168.1.38 --threads=1 "+WORKLOADS[TYPE]+" --depth=4 --measure_depth=1 --connections=16 --measure_connections=32 --measure_qps=2000 --qps="+str(mqps)+" --time="+str(TIME), "192.168.1.11")
     runRemoteCommands("killall -USR2 memcached", "192.168.1.9")
     
     if VERBOSE:
         print("Finished executing memcached")
         
-    f = open("mcd_out."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS), "w")
+    f = open("linux.mcd.out."+str(NREPEAT)+"_"+str(ITR)+"_"+str(DVFS)+"_"+str(RAPL)+"_"+str(TARGET_QPS), "w")
     for line in str(output).strip().split("\\n"):
         f.write(line.strip()+"\n")
     f.close()
     
     printLogs()
     getLogs()
+    time.sleep(1)
     
 def runBenchQPS(mqps):
     start_counter()
