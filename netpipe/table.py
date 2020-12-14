@@ -58,8 +58,8 @@ df_comb = pd.concat([df_mean, df_std], axis=1)
 df_comb.reset_index(inplace=True)
 
 
-for msg in [64/1000.0, 8192/1000.0, 65536/1000.0, 524288/1000.0]:
-#for msg in [8192/1000.0]:
+#for msg in [64/1000.0, 8192/1000.0, 65536/1000.0, 524288/1000.0]:
+for msg in [65536/1000.0]:
     #d = df_comb[(df_comb['sys']=='linux_default') & (df_comb['itr']==1) & (df_comb['dvfs']=='0xffff')].copy()
     #printSorted(d.sort_values(by='edp_mean', ascending=True).copy(), msg)
     
@@ -68,7 +68,7 @@ for msg in [64/1000.0, 8192/1000.0, 65536/1000.0, 524288/1000.0]:
 
     d = df_comb[(df_comb['sys']=='ebbrt_tuned') & (df_comb['itr']!=1) & (df_comb['dvfs']!='0xffff')].copy()
     printSorted(d.sort_values(by='edp_mean', ascending=True).copy(), msg)
-    print('')
+    #print('')
 
 
 #d = df_comb[(df_comb['sys']=='linux_default') & (df_comb['itr']==1) & (df_comb['dvfs']=='0xFFFF')].copy()

@@ -16,8 +16,9 @@ def printSorted(d):
     c=0
     for index, b in d.iterrows():
         csum = int(b['c1_mean'])+int(b['c1e_mean'])+int(b['c3_mean'])+int(b['c6_mean'])+int(b['c7_mean'])
-        #print(f"{c} {b['sys']} {b['itr']} {b['dvfs']} {b['rapl']} {round(b['edp_mean'], 2)} {round(b['edp_std'], 2)} {round(b['joules_mean'], 2)} {int(b['read_99th_mean'])} {int(b['num_interrupts_mean'])} {int(b['instructions_mean'])} {int(b['ref_cycles_mean'])} {int(b['llc_miss_mean'])} {int(b['c1_mean'])} {int(b['c1e_mean'])} {int(b['c3_mean'])} {int(b['c6_mean'])} {int(b['c7_mean'])} {int(csum)} {int(b['rx_bytes_mean'])} {int(b['tx_bytes_mean'])}")
-        print(f"{c} {b['sys']} {b['itr']} {b['dvfs']} {b['rapl']} {round(b['edp_mean'], 2)} {round(b['edp_std'], 2)} {round(b['joules_mean'], 2)} {round(b['joules_std'], 2)} {int(b['read_99th_mean'])} {int(b['read_99th_std'])} {int(b['num_interrupts_mean'])} {int(b['num_interrupts_std'])} {int(b['instructions_mean'])} {int(b['instructions_std'])} {int(b['ref_cycles_mean'])} {int(b['ref_cycles_std'])} {int(b['llc_miss_mean'])} {int(b['llc_miss_std'])} {int(b['c1_mean'])} {int(b['c1_std'])} {int(b['c1e_mean'])} {int(b['c1e_std'])} {int(b['c3_mean'])} {int(b['c3_std'])} {int(b['c6_mean'])} {int(b['c6_std'])} {int(b['c7_mean'])} {int(b['c7_std'])} {int(csum)} {int(b['rx_bytes_mean'])} {int(b['rx_bytes_std'])} {int(b['tx_bytes_mean'])} {int(b['tx_bytes_std'])}")
+        cpi=round((b['ref_cycles_mean']/b['instructions_mean']), 2)
+        #print(f"{c} {b['sys']} {b['itr']} {b['dvfs']} {b['rapl']} {round(b['edp_mean'], 2)} {round(b['edp_std'], 2)} {round(b['joules_mean'], 2)} {int(b['read_99th_mean'])} {int(b['num_interrupts_mean'])} {int(b['instructions_mean'])} {int(b['ref_cycles_mean'])} {int(b['llc_miss_mean'])} {int(b['c1_mean'])} {int(b['c1e_mean'])} {int(b['c3_mean'])} {int(b['c6_mean'])} {int(b['c7_mean'])} {int(csum)} {int(b['rx_bytes_mean'])} {int(b['tx_bytes_mean'])}") {b['measure_QPS_mean']} 
+        print(f"{c} {b['sys']} {b['itr']} {b['dvfs']} {b['rapl']} {round(b['edp_mean'], 2)} {round(b['edp_std'], 2)} {round(b['joules_mean'], 2)} {round(b['joules_std'], 2)} {int(b['read_99th_mean'])} {int(b['read_99th_std'])} {int(b['num_interrupts_mean'])} {int(b['num_interrupts_std'])} {cpi} {int(b['instructions_mean'])} {int(b['instructions_std'])} {int(b['ref_cycles_mean'])} {int(b['ref_cycles_std'])} {int(b['llc_miss_mean'])} {int(b['llc_miss_std'])} {int(b['c1_mean'])} {int(b['c1_std'])} {int(b['c1e_mean'])} {int(b['c1e_std'])} {int(b['c3_mean'])} {int(b['c3_std'])} {int(b['c6_mean'])} {int(b['c6_std'])} {int(b['c7_mean'])} {int(b['c7_std'])} {int(csum)} {int(b['rx_bytes_mean'])} {int(b['rx_bytes_std'])} {int(b['tx_bytes_mean'])} {int(b['tx_bytes_std'])}")
         c += 1
         if c > 9:
             break
@@ -43,6 +44,7 @@ df_std.columns = [f'{c}_std' for c in df_std.columns]
 
 df_comb = pd.concat([df_mean, df_std], axis=1)
 df_comb.reset_index(inplace=True)
+df_comb = df_comb.fillna(0) ## dangerous
 
 d = df_comb[(df_comb['sys']=='linux_default') & (df_comb['itr']==1) & (df_comb['dvfs']=='0xffff')].copy()
 printSorted(d.sort_values(by='edp_mean', ascending=True).copy())

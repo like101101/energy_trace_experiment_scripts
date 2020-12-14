@@ -8,16 +8,19 @@ import glob
 import multiprocessing as mp
 import sys
                                 
-plt.rc('axes', labelsize=14)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=14)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=14)    # fontsize of the tick labels
-plt.rc('legend', fontsize=14)    # legend fontsize
+plt.rc('axes', labelsize=19)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=19)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=19)    # fontsize of the tick labels
+plt.rc('legend', fontsize=19)    # legend fontsize
+plt.rcParams['ytick.right'] = plt.rcParams['ytick.labelright'] = True
+plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False
+#plt.rcParams['figure.figsize'] = 18, 8
 
-QPS=600000
-#if len(sys.argv) != 2:
-#    print("graph.py <QPS>")
-#    exit()
-#QPS = int(sys.argv[1])
+#QPS=600000
+if len(sys.argv) != 2:
+    print("graph.py <QPS>")
+    exit()
+QPS = int(sys.argv[1])
 
 #plt.ion()
 
@@ -92,49 +95,66 @@ dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == QPS)].copy()
 det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == QPS)].copy()
 
 #bar plots
-metric_labels = ['CPI', 'Ins', 'Cyc', 'C1', 'C1E', 'C3', 'C7', 'C*SUM', 'RxB', 'TxB', 'Interrupts']
+metric_labels = ['CPI', 'Instructions', 'Cycles', 'RxBytes', 'TxBytes', 'Interrupts', 'Halt']
 N_metrics = len(metric_labels) #number of clusters
 N_systems = 3 #number of plot loops
 
 fig, ax = plt.subplots(1)
-
-idx = np.arange(N_metrics) #one group per metric
+idx = np.arange(N_metrics-1) #one group per metric
 width = 0.2
 data_dict = {}
-
+cstates_all={}
 for dbest in [dld, dlt, det]:
     b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
     dsys = b['sys']
-    c_all = 0
     if 'ebbrt' in dsys:
-        c_all = b['c7']
-        print(f"{dsys} c7={c_all}")
+        c_all = np.array([0, 0, 0, 0, int(b['c7'])])
     else:
-        c_all = b['c1']+b['c1e']+b['c3']+b['c6']+b['c7']
-        print(f"{dsys} c1={b['c1']} c1e={b['c1e']} c3={b['c3']} c6={b['c6']} c7={b['c7']}")
-    
-        
+        c_all=np.array([int(b['c1']), int(b['c1e']), int(b['c3']), int(b['c6']), int(b['c7'])])
+    cstates_all[dsys]=c_all            
     data_dict[dsys] = np.array([b['ref_cycles']/b['instructions'],
                                 b['instructions'],
-                                b['ref_cycles'],
-                                b['c1'],
-                                b['c1e'],
-                                b['c3'],
-                                b['c7'],
-                                c_all,
+                                b['ref_cycles'],                           
                                 b['rx_bytes'],
                                 b['tx_bytes'],
                                 b['num_interrupts']])
+for dsys in ['linux_tuned', 'ebbrt_tuned', 'linux_default']:
+    cstates_all[dsys] = cstates_all[dsys]/sum(cstates_all['linux_default'])
+
 counter = 0
+last=0
 for sys in data_dict: #normalize and plot
-    data = data_dict[sys] / data_dict['linux_default']    
+    data = data_dict[sys] / data_dict['linux_default']
+    last=(idx + counter*width)[len(idx + counter*width)-1]
     ax.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])
     counter += 1
-    
+last = last+width
+for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
+    last = last + width
+    bars=0
+    for i in range(0, len(cstates_all[dsys])):
+        llen=len(cstates_all[dsys])
+        colors = plt.cm.BuPu(np.linspace(0, 1, llen))
+        
+        if 'linux_default' == dsys:
+            colors = plt.cm.get_cmap('Blues', llen) #plt.cm.Blues(np.linspace(0, 1, len(cstates_all[dsys])))
+        elif 'linux_tuned' == dsys:
+            colors = plt.cm.get_cmap('Greens', llen) #plt.cm.Greens(np.linspace(0, 1, len(cstates_all[dsys])))
+        else:
+            colors = plt.cm.get_cmap('Reds', llen) #plt.cm.Reds(np.linspace(0, 1, len(cstates_all[dsys])))
+            
+        if i == 0:
+            ax.bar(last, cstates_all[dsys][i], width=width, color=colors(i/llen), edgecolor='black', hatch=HATCHS[dsys])
+        else:
+            ax.bar(last, cstates_all[dsys][i], bottom=bars, width=width, color=colors(i/llen), edgecolor='black', hatch=HATCHS[dsys])
+        bars = bars + cstates_all[dsys][i]
+
+idx = np.arange(N_metrics) #one group per metric    
 ax.set_xticks(idx)
-ax.set_xticklabels(metric_labels, rotation=15)
+ax.set_xticklabels(metric_labels, rotation=15, fontsize=14)
 plt.legend()
 #plt.legend(loc='lower left')
+plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_barplot.pdf')
 
 ## prep
@@ -190,48 +210,149 @@ for dsys in ['ebbrt_tuned', 'linux_tuned', 'linux_default']:
         fname = f'{log_loc}/ebbrt_dmesg.{i}_{core}_{itr}_{dvfs}_{rapl}_{qps}.csv'
         etdf, etdfn = updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=True)
         ddfs[dsys] = [etdf, etdfn]
-    
+
+#fig, ax = plt.figure()
+fig, ax = plt.subplots(1)
+ax.yaxis.set_label_position("right")
+plt.errorbar(det['joules'], det['read_99th'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
+plt.errorbar(dlt['joules'], dlt['read_99th'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
+plt.errorbar(dld['joules'], dld['read_99th'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
+for dbest in [dld, dlt, det]:
+    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
+    bjoules = b['joules']
+    btail = b['read_99th']
+    plt.plot(bjoules,  btail, fillstyle='none', marker='o', markersize=15, c=COLORS[b['sys']])
+plt.ylabel("99% Tail Latency (usecs)")
+plt.xlabel("Energy Consumed (Joules)")
+#plt.legend()
+plt.grid()
+plt.show()
+plt.tight_layout()
+plt.savefig(f'mcd_{QPS}_overview.pdf')
+
 ## nonidle timeline
-plt.figure()
+#plt.figure()
+fig, ax = plt.subplots(1)
+ax.yaxis.set_label_position("right")
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
-    ddfn = ddfn[(ddfn['nonidle_frac_diff'] > 0) & (ddfn['nonidle_frac_diff'] < 1.001)]
+    ddfn = ddfn[(ddfn['nonidle_frac_diff'] > 0) & (ddfn['nonidle_frac_diff'] < 1.1)]
     plt.plot(ddfn['timestamp_non0'], ddfn['nonidle_frac_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
-plt.xlabel("Time (secs)")
+#plt.xlabel("Time (secs)")
 plt.ylabel("Nonidle Time (%)")
-plt.ylim((0, 1.001))
-plt.legend()
+plt.ylim((0, 1.1))
+#plt.legend()
 plt.grid()
+plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_nonidle_timeline.png')
 
 ## joule timeline
-plt.figure()
+#plt.figure()
+fig, ax = plt.subplots(1)
+ax.yaxis.set_label_position("right")
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
     ddfn = ddfn[(ddfn['joules_diff'] > 0) & (ddfn['joules_diff'] < 3000)]
     plt.plot(ddfn['timestamp_non0'], ddfn['joules_diff'], HATCHS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
-plt.xlabel("Time (secs)")
+#plt.xlabel("Time (secs)")
 plt.ylabel("Energy Consumed (Joules)")
-plt.legend()
+#plt.legend()
 plt.grid()
+plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_joules_timeline.png')
 
 ## instructions timeline
-plt.figure()
+#plt.figure()
+fig, ax = plt.subplots(1)
+ax.yaxis.set_label_position("right")
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
     ddfn = ddfn[(ddfn['instructions_diff'] > 0) & (ddfn['instructions_diff'] < 250000000)]
     plt.plot(ddfn['timestamp_non0'], ddfn['instructions_diff'], HATCHS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
-plt.xlabel("Time (secs)")
+#plt.xlabel("Time (secs)")
 plt.ylabel("Instructions")
 plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-plt.legend()
+#plt.legend()
 plt.grid()
+plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_instructions_timeline.png')
 
+## EPP
+x_offset, y_offset = 0.01/5, 0.01/5
+#plt.figure()
+fig, ax = plt.subplots(1)
+ax.yaxis.set_label_position("right")
+for dbest in [dld, dlt, det]:
+    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
+    btime = b['time']
+    bjoules = b['joules']
+
+    di = b['i']
+    ditr = b['itr']
+    ddvfs = b['dvfs']
+    drapl = b['rapl']
+    dqps = b['target_QPS']
+    dsys = b['sys']
+
+    xxrange = np.arange(0, int(btime)+1, int(btime/10))
+    yyrange = np.arange(0, int(bjoules)+1, int(bjoules/10))
+    #print(btime, xxrange)
+    #print(bjoules, yyrange)
+    plt.errorbar(xxrange, yyrange, label=LABELS[dbest['sys'].max()], fmt=FMTS[dbest['sys'].max()], c=COLORS[dbest['sys'].max()])
+    if dsys == 'linux_tuned':
+        plt.text(x_offset + btime - 7, y_offset + bjoules + 25, f'({ditr}, {ddvfs}, {drapl})', fontsize=14)
+    if dsys == 'ebbrt_tuned':
+        plt.text(x_offset + btime - 5, y_offset + bjoules - 280, f'({ditr}, {ddvfs}, {drapl})', fontsize=14)
+    #plt.axis([0, 1, 1.1*np.amin(yyrange), 1.1*np.amax(yyrange)])
+
+#plt.xlabel("Time (secs)")
+plt.ylabel("Energy Consumed (Joules)")
+#plt.legend(loc='lower right')
+plt.grid()
+
+#99 tail subplot
+metric_labels = ['99% Tail (us)']
+N_metrics = len(metric_labels) #number of clusters
+N_systems = 3 #number of plot loops
+
+#fig, ax = plt.subplots(1)
+
+idx = np.arange(N_metrics) #one group per metric
+width = 0.2
+
+df_dict = {'linux_default': dld,
+           'linux_tuned': dlt,
+           'ebbrt_tuned': det}
+
+data_dict = {}
+a = plt.axes([.05, .6, .3, .3])
+
+for dbest in [dld, dlt, det]:
+    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
+    dsys = b['sys']
+    data_dict[dsys] = np.array([b['read_99th']])    
+counter = 0
+for sys in data_dict: #normalize and plot
+    data = data_dict[sys]
+    rect = plt.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])    
+    height = int(data)
+    plt.annotate('{}'.format(height),
+                 xy=(idx + counter*width, height),
+                 xytext=(0, 1),  # 3 points vertical offset
+                 textcoords="offset points",
+                 ha='center', va='bottom', size=14)
+    counter += 1
+    plt.xticks([])
+    plt.yticks([])
+    plt.xlabel('99% Tail (us)')
+plt.show()
+plt.tight_layout()
+plt.savefig(f'mcd_{QPS}_epp.pdf')
+
+'''
 ## timediff timeline
 plt.figure()
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
@@ -259,88 +380,6 @@ plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 plt.grid()
 plt.savefig(f'mcd_{QPS}_rxbytes_timeline.png')
 
-#plot 1: throughput vs msg size
-plt.figure()
-plt.errorbar(det['joules'], det['read_99th'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
-plt.errorbar(dlt['joules'], dlt['read_99th'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
-plt.errorbar(dld['joules'], dld['read_99th'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
-
-plt.ylabel("99% Tail Latency (usecs)")
-plt.xlabel("Energy Consumed (Joules)")
-#plt.legend()
-plt.grid()
-plt.show()
-plt.savefig(f'mcd_{QPS}_overview.pdf')
-
-## EPP
-x_offset, y_offset = 0.01/5, 0.01/5
-plt.figure()
-for dbest in [dld, dlt, det]:
-    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
-    btime = b['time']
-    bjoules = b['joules']
-
-    di = b['i']
-    ditr = b['itr']
-    ddvfs = b['dvfs']
-    drapl = b['rapl']
-    dqps = b['target_QPS']
-    dsys = b['sys']
-
-    xxrange = np.arange(0, int(btime)+1, int(btime/10))
-    yyrange = np.arange(0, int(bjoules)+1, int(bjoules/10))
-    #print(btime, xxrange)
-    #print(bjoules, yyrange)
-    plt.errorbar(xxrange, yyrange, label=LABELS[dbest['sys'].max()], fmt=FMTS[dbest['sys'].max()], c=COLORS[dbest['sys'].max()])
-    if dsys == 'linux_tuned':
-        plt.text(x_offset + btime - 2, y_offset + bjoules + 60, f'({ditr}, {ddvfs}, {drapl})')
-    if dsys == 'ebbrt_tuned':
-        plt.text(x_offset + btime - 2, y_offset + bjoules - 300, f'({ditr}, {ddvfs}, {drapl})')
-    #plt.axis([0, 1, 1.1*np.amin(yyrange), 1.1*np.amax(yyrange)])
-
-plt.xlabel("Time (secs)")
-plt.ylabel("Energy Consumed (Joules)")
-plt.legend(loc='lower right')
-plt.grid()
-
-#99 tail subplot
-metric_labels = ['99% Tail (us)']
-N_metrics = len(metric_labels) #number of clusters
-N_systems = 3 #number of plot loops
-
-#fig, ax = plt.subplots(1)
-
-idx = np.arange(N_metrics) #one group per metric
-width = 0.2
-
-df_dict = {'linux_default': dld,
-           'linux_tuned': dlt,
-           'ebbrt_tuned': det}
-
-data_dict = {}
-a = plt.axes([.15, .53, .3, .3])
-
-for dbest in [dld, dlt, det]:
-    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
-    dsys = b['sys']
-    data_dict[dsys] = np.array([b['read_99th']])    
-counter = 0
-for sys in data_dict: #normalize and plot
-    data = data_dict[sys]
-    rect = plt.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])    
-    height = int(data)
-    plt.annotate('{}'.format(height),
-                 xy=(idx + counter*width, height),
-                 xytext=(0, 3),  # 3 points vertical offset
-                 textcoords="offset points",
-                 ha='center', va='bottom')
-    counter += 1
-    plt.xticks([])
-    plt.yticks([])
-    plt.xlabel('99% Tail (us)')
-plt.show()
-plt.savefig(f'mcd_{QPS}_epp.pdf')
-
 ## txbyte timeline
 plt.figure()
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
@@ -353,3 +392,5 @@ plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 #plt.legend()
 plt.grid()
 plt.savefig(f'mcd_{QPS}_txbytes_timeline.png')
+
+'''

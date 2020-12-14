@@ -48,10 +48,10 @@ def updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=False):
 
     return df, df_non0j
 
-plt.rc('axes', labelsize=14)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=14)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=14)    # fontsize of the tick labels
-plt.rc('legend', fontsize=14)    # legend fontsize
+plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=20)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=20)    # fontsize of the tick labels
+plt.rc('legend', fontsize=20)    # legend fontsize
 
 #plt.ion()
 
@@ -87,25 +87,12 @@ dld = df[(df['sys']=='linux_default') & (df['itr']==1) & (df['dvfs']=='0xffff')]
 dlt = df[(df['sys']=='linux_tuned')].copy()
 det = df[(df['sys']=='ebbrt_tuned')].copy()
 
-'''
-## overview
-plt.figure()
-plt.errorbar(det['joules'], det['time'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=0.5)
-plt.errorbar(dlt['joules'], dlt['time'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=0.5)
-plt.errorbar(dld['joules'], dld['time'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=0.5)
-plt.ylabel("Time (secs)")
-plt.xlabel("Energy Consumed (Joules)")
-plt.legend()
-plt.grid()
-plt.savefig('nodejs_overview.pdf')
-'''
-
 ## prep
 bconf={}
 for dbest in [dld, dlt, det]:
     b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
     bconf[b['sys']] = [b['i'], b['itr'], b['dvfs'], b['rapl']]
-bconf['ebbrt_tuned'] = [2, 4, '0x1900', 135]
+bconf['ebbrt_tuned'] = [2, 4, '0x1900', 135]#
 print(bconf)
 
 ddfs = {}
@@ -159,80 +146,90 @@ for dsys in ['ebbrt_tuned', 'linux_tuned', 'linux_default']:
         etdf, etdfn = updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=True)
         ddfs[dsys] = [etdf, etdfn]
 
-## timediff timeline
+## overview
 plt.figure()
+plt.errorbar(det['joules'], det['time'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=0.5)
+plt.errorbar(dlt['joules'], dlt['time'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=0.5)
+plt.errorbar(dld['joules'], dld['time'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=0.5)
+
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
-    #ddf = ddf[(ddf['timestamp'] > 5.5) & (ddf['timestamp'] < 8)]
-    ddf = ddf[ddf['timestamp_diff'] < 0.0005]
-    plt.plot(ddf['timestamp'], ddf['timestamp_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
-plt.xlabel("Time (secs)")
-plt.ylabel("Time_diff")
-plt.legend()
+    bjoules = ddfn['joules_diff'].sum()
+    btime = ddf['timestamp_diff'].sum()
+    plt.plot(bjoules,  btime, fillstyle='none', marker='o', markersize=15, c=COLORS[dsys])
+
+plt.ylabel("Time (secs)")
+plt.xlabel("Energy Consumed (Joules)")
+plt.legend(loc='lower right')
 plt.grid()
-plt.savefig(f'nodejs_timediff_timeline.pdf')
-
-
-'''
-
-## instructions timeline
-plt.figure()
-for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
-    ddf = ddfs[dsys][0]
-    ddfn = ddfs[dsys][1]
-    #ddfn = ddfn[(ddfn['timestamp_non0'] > 3) & (ddfn['timestamp_non0'] < 8)]
-    #ddfn = ddfn[(ddfn['timestamp_non0'] > 0.02)
-    ddfn = ddfn[ddfn['instructions_diff'] < 2500000]
-    plt.plot(ddfn['timestamp_non0'], ddfn['instructions_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
-plt.xlabel("Time (secs)")
-plt.ylabel("Instructions")
-plt.legend(loc='upper left')
-#plt.xticks(visible=False)
-#plt.yticks(visible=False)
-plt.grid()
-plt.savefig(f'nodejs_instructions_timeline_zoom.pdf')
-
+plt.tight_layout()
+plt.savefig('nodejs_overview.pdf')
 
 #bar plots
-metric_labels = ['CPI', 'Instructions', 'Cycles', 'Halt', 'RxBytes', 'TxBytes', 'Interrupts']
+metric_labels = ['CPI', 'Instructions', 'Cycles', 'RxBytes', 'TxBytes', 'Interrupts', 'Halt']
 N_metrics = len(metric_labels) #number of clusters
 N_systems = 3 #number of plot loops
 fig, ax = plt.subplots(1)
-idx = np.arange(N_metrics) #one group per metric
+idx = np.arange(N_metrics-1) #one group per metric
 width = 0.2
 data_dict = {}
+cstates_all={}
 
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     ddf = ddfs[dsys][0]
     ddfn = ddfs[dsys][1]
 
     if 'ebbrt' in dsys:
-        c_all = ddfn['c7'].sum()
-        print(f"{dsys} c7={c_all}")
+        c_all = np.array([0, 0, 0, 0, int(ddfn['c7'].sum())])
     else:
-        c_all = ddfn['c1_diff'].sum() + ddfn['c1e_diff'].sum() + ddfn['c3_diff'].sum() + ddfn['c6_diff'].sum() + ddfn['c7_diff'].sum()
-        print(f"{dsys} c1={ddfn['c1_diff'].sum()} c1e={ddfn['c1e_diff'].sum()} c3={ddfn['c3_diff'].sum()} c6={ddfn['c6_diff'].sum()} c7={ddfn['c7_diff'].sum()}")
-
+        c_all=np.array([int(ddfn['c1_diff'].sum()), int(ddfn['c1e_diff'].sum()), int(ddfn['c3_diff'].sum()), int(ddfn['c6_diff'].sum()), int(ddfn['c7_diff'].sum())])
+    cstates_all[dsys]=c_all
         
     data_dict[dsys] = np.array([(ddfn['ref_cycles_diff'].sum()/ddfn['instructions_diff'].sum()),
                                 ddfn['instructions_diff'].sum(),
                                 ddfn['ref_cycles_diff'].sum(),
-                                c_all,
                                 ddf['rx_bytes'].sum(),
                                 ddf['tx_bytes'].sum(),
                                 ddf.shape[0]])
-counter = 0
+for dsys in ['linux_tuned', 'ebbrt_tuned', 'linux_default']:
+    cstates_all[dsys] = cstates_all[dsys]/sum(cstates_all['linux_default'])
+    
+counter=0
+last=0
 for sys in data_dict: #normalize and plot
-    data = data_dict[sys] / data_dict['linux_default']    
+    data = data_dict[sys] / data_dict['linux_default']
+    last=(idx + counter*width)[len(idx + counter*width)-1]
     ax.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])
-    counter += 1    
+    counter += 1
+last = last+width
+for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
+    last = last + width
+    bars=0
+    for i in range(0, len(cstates_all[dsys])):
+        llen=len(cstates_all[dsys])
+        colors = plt.cm.BuPu(np.linspace(0, 1, llen))
+        
+        if 'linux_default' == dsys:
+            colors = plt.cm.get_cmap('Blues', llen) #plt.cm.Blues(np.linspace(0, 1, len(cstates_all[dsys])))
+        elif 'linux_tuned' == dsys:
+            colors = plt.cm.get_cmap('Greens', llen) #plt.cm.Greens(np.linspace(0, 1, len(cstates_all[dsys])))
+        else:
+            colors = plt.cm.get_cmap('Reds', llen) #plt.cm.Reds(np.linspace(0, 1, len(cstates_all[dsys])))
+            
+        if i == 0:
+            ax.bar(last, cstates_all[dsys][i], width=width, color=colors(i/llen), edgecolor='black', hatch=HATCHS[dsys])
+        else:
+            ax.bar(last, cstates_all[dsys][i], bottom=bars, width=width, color=colors(i/llen), edgecolor='black', hatch=HATCHS[dsys])
+        bars = bars + cstates_all[dsys][i]
+
+idx = np.arange(N_metrics) #one group per metric
 ax.set_xticks(idx)
-ax.set_xticklabels(metric_labels, rotation=15)
-plt.legend()
+ax.set_xticklabels(metric_labels, rotation=15, fontsize=14)
+#plt.legend()
+plt.tight_layout()
 plt.savefig(f'nodejs_barplot.pdf')
-'''
-'''
+
 ## EDP
 plt.figure()
 for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
@@ -248,13 +245,16 @@ for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     plt.plot(ddfn['timestamp_non0'].iloc[::1400], ddfn['joules'].iloc[::1400], HATCHS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)    
     btime = ddf['timestamp_diff'].sum()
     bjoules = ddfn['joules_diff'].sum()
-    if 'tuned' in dsys:
-        plt.text(x_offset + btime, y_offset + bjoules, f'({ditr}, {ddvfs}, {drapl})')
+    if 'ebbrt_tuned' in dsys:
+        plt.text(x_offset + btime-0.5, y_offset + bjoules, f'({ditr}, {ddvfs}, {drapl})', fontsize=14)
+    elif 'linux_tuned' in dsys:
+        plt.text(x_offset + btime-2, y_offset + bjoules, f'({ditr}, {ddvfs}, {drapl})', fontsize=14)
 plt.xlabel("Time (secs)")
 plt.ylabel("Energy Consumed (Joules)")
-plt.legend()
+plt.legend(loc='lower right')
 plt.grid()
-plt.savefig(f'nodejs_edp.pdf')
+plt.tight_layout()
+plt.savefig(f'nodejs_epp.pdf')
 
 ## joule timeline
 plt.figure()
@@ -264,9 +264,10 @@ for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     plt.plot(ddfn['timestamp_non0'], ddfn['joules_diff'], HATCHS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
 plt.xlabel("Time (secs)")
 plt.ylabel("Energy Consumed (Joules)")
-plt.legend()
+plt.legend(loc='upper right')
 plt.grid()
-plt.savefig(f'nodejs_joule_timeline.pdf')
+plt.tight_layout()
+plt.savefig(f'nodejs_joule_timeline.png')
 
 ## nonidle timeline
 plt.figure()
@@ -276,10 +277,44 @@ for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
     plt.plot(ddfn['timestamp_non0'], ddfn['nonidle_frac_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
 plt.xlabel("Time (secs)")
 plt.ylabel("Nonidle Time (%)")
-plt.ylim((0, 1.001))
+plt.ylim((0, 1.1))
+plt.legend(loc='lower right')
+plt.grid()
+plt.tight_layout()
+plt.savefig(f'nodejs_nonidle_timeline.png')
+
+'''
+## instructions timeline
+plt.figure()
+for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
+    ddf = ddfs[dsys][0]
+    ddfn = ddfs[dsys][1]
+    #ddfn = ddfn[(ddfn['timestamp_non0'] > 3) & (ddfn['timestamp_non0'] < 8)]
+    #ddfn = ddfn[(ddfn['timestamp_non0'] > 0.02)
+    ddfn = ddfn[ddfn['instructions_diff'] < 2500000]
+    plt.plot(ddfn['timestamp_non0'], ddfn['instructions_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
+plt.xlabel("Time (secs)")
+plt.ylabel("Instructions")
+plt.legend(loc='upper left')
+plt.grid()
+plt.savefig(f'nodejs_instructions_timeline.png')
+
+## timediff timeline
+plt.figure()
+for dsys in ['linux_default', 'linux_tuned', 'ebbrt_tuned']:
+    ddf = ddfs[dsys][0]
+    ddfn = ddfs[dsys][1]
+    #ddf = ddf[(ddf['timestamp'] > 5.5) & (ddf['timestamp'] < 8)]
+    ddf = ddf[ddf['timestamp_diff'] < 0.0005]
+    plt.plot(ddf['timestamp'], ddf['timestamp_diff'], FMTS[dsys], label=LABELS[dsys], c=COLORS[dsys], alpha=0.5)
+plt.xlabel("Time (secs)")
+plt.ylabel("Time_diff")
 plt.legend()
 plt.grid()
-plt.savefig(f'nodejs_nonidle_timeline.pdf')
+plt.savefig(f'nodejs_timediff_timeline.pdf')
+
+'''
+'''
 
 '''
 '''
