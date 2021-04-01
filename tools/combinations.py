@@ -28,7 +28,7 @@ print('dvfs:', df_ebbrt['dvfs'].unique())
 # rapl
 print('rapl:', df_ebbrt['rapl'].unique())
 # target queries-per-second (QPS)
-print('QPS:', df_ebbrt['target_QPS'].unique(), len(df_ebbrt['target_QPS'].unique()))
+print('QPS:', df_ebbrt['target_QPS'].unique())
 print('EbbRT combinations: ', len(df_ebbrt['itr'].unique()) * len(df_ebbrt['dvfs'].unique()) * len(df_ebbrt['rapl'].unique()))
 
 
