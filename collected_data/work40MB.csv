@@ -1,0 +1,180 @@
+work40MB,0x1d00,6,163.961,4.969,6291463812,14409306560,12294603
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1d00 600
+
+
+Allocated fffffffe39e00000 - fffffffe3a5fffff
+DVFS: 0x1d00 == 7424
+work40MB,0x1d00,6,164.094,4.969,6291463812,14409928059,12294636
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1d00 600
+
+
+Allocated fffffffe39600000 - fffffffe39dfffff
+DVFS: 0x1d00 == 7424
+work40MB,0x1d00,6,164.201,4.969,6291463812,14410766449,12294592
+
+DVFS: 0x1b00 == 6912
+work40MB,0x1b00,6,157.824,5.104,6291463812,14801851691,12294526
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1b00 600
+
+
+Allocated fffffffe36e00000 - fffffffe375fffff
+DVFS: 0x1b00 == 6912
+work40MB,0x1b00,6,157.993,5.104,6291463812,14802977790,12294522
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1b00 600
+
+
+Allocated fffffffe36600000 - fffffffe36dfffff
+DVFS: 0x1b00 == 6912
+work40MB,0x1b00,6,158.117,5.105,6291463812,14804788666,12294573
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1900 600
+
+
+Allocated fffffffe35e00000 - fffffffe365fffff
+DVFS: 0x1900 == 6400
+work40MB,0x1900,6,152.668,5.292,6291463812,15348158911,12294212
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1900 600
+
+
+Allocated fffffffe35600000 - fffffffe35dfffff
+DVFS: 0x1900 == 6400
+work40MB,0x1900,6,152.754,5.292,6291463812,15345858863,12294206
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1900 600
+
+
+Allocated fffffffe34e00000 - fffffffe355fffff
+DVFS: 0x1900 == 6400
+work40MB,0x1900,6,152.808,5.292,6291463812,15347603329,12294296
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1700 600
+
+
+Allocated fffffffe34600000 - fffffffe34dfffff
+DVFS: 0x1700 == 5888
+work40MB,0x1700,6,149.982,5.544,6291463812,16076728521,12293735
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1700 600
+
+
+Allocated fffffffe33e00000 - fffffffe345fffff
+DVFS: 0x1700 == 5888
+work40MB,0x1700,6,150.036,5.543,6291463812,16075390490,12293762
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1700 600
+
+
+Allocated fffffffe33600000 - fffffffe33dfffff
+DVFS: 0x1700 == 5888
+work40MB,0x1700,6,150.004,5.543,6291463812,16075358068,12293818
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1500 600
+
+
+Allocated fffffffe32e00000 - fffffffe335fffff
+DVFS: 0x1500 == 5376
+work40MB,0x1500,6,147.878,5.851,6291463812,16966898369,12293711
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1500 600
+
+
+Allocated fffffffe32600000 - fffffffe32dfffff
+DVFS: 0x1500 == 5376
+work40MB,0x1500,6,147.793,5.849,6291463812,16961488448,12293753
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1500 600
+
+
+Allocated fffffffe31e00000 - fffffffe325fffff
+DVFS: 0x1500 == 5376
+work40MB,0x1500,6,147.838,5.850,6291463812,16966370511,12293745
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1300 600
+
+
+Allocated fffffffe31600000 - fffffffe31dfffff
+DVFS: 0x1300 == 4864
+work40MB,0x1300,6,147.596,6.230,6291463812,18065933322,12293640
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1300 600
+
+
+Allocated fffffffe30e00000 - fffffffe315fffff
+DVFS: 0x1300 == 4864
+work40MB,0x1300,6,147.403,6.230,6291463812,18065580943,12293637
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1300 600
+
+
+Allocated fffffffe30600000 - fffffffe30dfffff
+DVFS: 0x1300 == 4864
+work40MB,0x1300,6,147.504,6.230,6291463812,18066036562,12293637
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1100 600
+
+
+Allocated fffffffe2fe00000 - fffffffe305fffff
+DVFS: 0x1100 == 4352
+work40MB,0x1100,6,147.990,6.664,6291463812,19324463461,12293655
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1100 600
+
+
+Allocated fffffffe2f600000 - fffffffe2fdfffff
+DVFS: 0x1100 == 4352
+work40MB,0x1100,6,148.017,6.663,6291463812,19322861646,12293658
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0x1100 600
+
+
+Allocated fffffffe2ee00000 - fffffffe2f5fffff
+DVFS: 0x1100 == 4352
+work40MB,0x1100,6,147.951,6.664,6291463812,19325012460,12293658
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0xf00 600
+
+
+Allocated fffffffe2e600000 - fffffffe2edfffff
+DVFS: 0xf00 == 3840
+work40MB,0xf00,6,151.405,7.248,6291463812,21018510032,12293613
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0xf00 600
+
+
+Allocated fffffffe2de00000 - fffffffe2e5fffff
+DVFS: 0xf00 == 3840
+work40MB,0xf00,6,151.425,7.247,6291463812,21015408772,12293604
+
+Core 0: TcpServer connection created
+Core: 0 TcpServer::Receive() work work40MB 0xf00 600
+
+
+Allocated fffffffe2d600000 - fffffffe2ddfffff
+DVFS: 0xf00 == 3840
+work40MB,0xf00,6,151.403,7.247,6291463812,21016714497,12293611

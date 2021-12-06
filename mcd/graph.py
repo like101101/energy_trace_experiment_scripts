@@ -8,12 +8,13 @@ import glob
 import multiprocessing as mp
 import sys
                                 
-plt.rc('axes', labelsize=19)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=19)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=19)    # fontsize of the tick labels
-plt.rc('legend', fontsize=19)    # legend fontsize
-plt.rcParams['ytick.right'] = plt.rcParams['ytick.labelright'] = True
-plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False
+plt.rc('axes', labelsize=18)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=18)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=18)    # fontsize of the tick labels
+plt.rc('legend', fontsize=10)    # legend fontsize
+#plt.rcParams['ytick.right'] = plt.rcParams['ytick.labelright'] = True
+#plt.rcParams['ytick.left'] = plt.rcParams['ytick.labelleft'] = False
+
 #plt.rcParams['figure.figsize'] = 18, 8
 
 #QPS=600000
@@ -28,6 +29,28 @@ x_offset, y_offset = 0.01/5, 0.01/5
 
 LINUX_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7', 'joules', 'timestamp']
 EBBRT_COLS = ['i', 'rx_desc', 'rx_bytes', 'tx_desc', 'tx_bytes', 'instructions', 'cycles', 'ref_cycles', 'llc_miss', 'c3', 'c6', 'c7', 'joules', 'timestamp']
+
+dvfs_dict = {
+    "0xc00" :  1.2,
+    "0xd00" :  1.3,
+    "0xe00" :  1.4,
+    "0xf00" :  1.5,
+    "0x1000" : 1.6,
+    "0x1100" : 1.7,
+    "0x1200" : 1.8,
+    "0x1300" : 1.9,
+    "0x1400" : 2.0,
+    "0x1500" : 2.1,
+    "0x1600" : 2.2,
+    "0x1700" : 2.3,
+    "0x1800" : 2.4,
+    "0x1900" : 2.5,
+    "0x1a00" : 2.6,
+    "0x1b00" : 2.7,
+    "0x1c00" : 2.8,
+    "0x1d00" : 2.9,
+    "0xffff" : 3.0,
+}
 
 def updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=False):
     df = pd.DataFrame()
@@ -66,7 +89,8 @@ def updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=False):
 JOULE_CONVERSION = 0.00001526 #counter * constant -> JoulesOB
 TIME_CONVERSION_khz = 1./(2899999*1000)
 
-workload_loc='/scratch2/mcd/mcd_combined_11_9_2020/mcd_combined.csv'
+#workload_loc='/scratch2/mcd/mcd_combined_11_9_2020/mcd_combined.csv'
+workload_loc='../collected_data/mcd_combined.csv'
 log_loc='/scratch2/mcd/mcd_combined_11_9_2020/'
 
 COLORS = {'linux_default': 'blue',
@@ -90,11 +114,52 @@ df = df[df['joules'] > 0]
 df = df[df['read_99th'] <= 500.0]
 #df['edp'] = df['joules'] * df['time']
 df['edp'] = df['joules'] * df['read_99th']
-dld = df[(df['sys']=='linux_default') & (df['itr']==1) & (df['dvfs']=='0xffff') & (df['target_QPS'] == QPS)].copy()
+df['dvfs'] = df['dvfs'].apply(lambda x: dvfs_dict[x])
+#df['dvfs'] = df['dvfs'] / df.dvfs.max()
+#print(df['dvfs'])
+df['processor'] = df['dvfs'] * df['rapl']
+dld = df[(df['sys']=='linux_default') & (df['itr']==1) & (df['dvfs']==3.0) & (df['target_QPS'] == QPS)].copy()
 dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == QPS)].copy()
 det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == QPS)].copy()
 
+# read_99th vs joules
+#fig, ax = plt.figure()
+fig, ax = plt.subplots(1)
+ax.set_title(QPS, x=0.1, y=0.9)
+#ax.yaxis.set_label_position("right")
+#norm= matplotlib.colors.Normalize(vmin=1,vmax=10)
+cb1=plt.scatter(det['read_99th'], det['joules'], marker='o', s=det['itr'], c=det['dvfs'], label=LABELS[det['sys'].max()], cmap='Reds_r', alpha=0.9)
+#plt.scatter(dlt['read_99th'], dlt['joules'], marker='o', s=dlt['itr'], c=dlt['dvfs'], label=LABELS[dlt['sys'].max()], cmap='Greens_r', alpha=0.9)
+#plt.scatter(dld['read_99th'], dld['joules'], marker='o', s=dld['itr'], c=dld['dvfs'], label=LABELS[dld['sys'].max()], cmap='Blues_r', alpha=0.9)
+#plt.errorbar(det['joules'], det['read_99th'], s=det['itr'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
+#plt.errorbar(dlt['joules'], dlt['read_99th'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
+#plt.errorbar(dld['joules'], dld['read_99th'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
+
+#for dbest in [dld, dlt, det]:
+#    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
+#    bjoules = b['joules']
+#    btail = b['read_99th']
+#    plt.plot(btail,  bjoules, fillstyle='none', marker='o', markersize=15, c=COLORS[b['sys']])
+plt.xlabel("99% Tail Latency (usecs)")
+plt.ylabel("Energy Consumed (Joules)")
+#cbar=plt.colorbar(cb1)
+#cbar.set_label('Processor Frequency', rotation=270)
+#plt.legend(['linuxd', 'linuxt', 'libos'], ncol=3)
+#cmap = mpl.cm.cool
+#norm = mpl.colors.Normalize(vmin=0, vmax=10)
+#cb1 = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+#                                norm=norm,
+#                                orientation='vertical')
+#cb1.set_label('Some Units')
+
+plt.grid()
+plt.tight_layout()
+#plt.show()
+plt.savefig(f'mcd_{QPS}_overview.png')
+
+
 #bar plots
+'''
 metric_labels = ['CPI', 'Instructions', 'Cycles', 'RxBytes', 'TxBytes', 'Interrupts', 'Halt']
 N_metrics = len(metric_labels) #number of clusters
 N_systems = 3 #number of plot loops
@@ -156,7 +221,9 @@ plt.legend()
 #plt.legend(loc='lower left')
 plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_barplot.pdf')
+'''
 
+'''
 ## prep
 bconf={}
 for dbest in [dld, dlt, det]:
@@ -210,26 +277,8 @@ for dsys in ['ebbrt_tuned', 'linux_tuned', 'linux_default']:
         fname = f'{log_loc}/ebbrt_dmesg.{i}_{core}_{itr}_{dvfs}_{rapl}_{qps}.csv'
         etdf, etdfn = updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=True)
         ddfs[dsys] = [etdf, etdfn]
-
-#fig, ax = plt.figure()
-fig, ax = plt.subplots(1)
-ax.yaxis.set_label_position("right")
-plt.errorbar(det['joules'], det['read_99th'], fmt='x', label=LABELS[det['sys'].max()], c=COLORS['ebbrt_tuned'], alpha=1)
-plt.errorbar(dlt['joules'], dlt['read_99th'], fmt='*', label=LABELS[dlt['sys'].max()], c=COLORS['linux_tuned'], alpha=1)
-plt.errorbar(dld['joules'], dld['read_99th'], fmt='o', label=LABELS[dld['sys'].max()], c=COLORS['linux_default'], alpha=1)
-for dbest in [dld, dlt, det]:
-    b = dbest[dbest.edp==dbest.edp.min()].iloc[0]
-    bjoules = b['joules']
-    btail = b['read_99th']
-    plt.plot(bjoules,  btail, fillstyle='none', marker='o', markersize=15, c=COLORS[b['sys']])
-plt.ylabel("99% Tail Latency (usecs)")
-plt.xlabel("Energy Consumed (Joules)")
-#plt.legend()
-plt.grid()
-plt.show()
-plt.tight_layout()
-plt.savefig(f'mcd_{QPS}_overview.pdf')
-
+'''
+'''
 ## nonidle timeline
 #plt.figure()
 fig, ax = plt.subplots(1)
@@ -337,7 +386,7 @@ for dbest in [dld, dlt, det]:
 counter = 0
 for sys in data_dict: #normalize and plot
     data = data_dict[sys]
-    rect = plt.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])    
+    rect = plt.bar(idx + counter*width, data, width, label=LABELS[sys], color=COLORS[sys], edgecolor='black', hatch=HATCHS[sys])  
     height = int(data)
     plt.annotate('{}'.format(height),
                  xy=(idx + counter*width, height),
@@ -351,6 +400,7 @@ for sys in data_dict: #normalize and plot
 plt.show()
 plt.tight_layout()
 plt.savefig(f'mcd_{QPS}_epp.pdf')
+'''
 
 '''
 ## timediff timeline
