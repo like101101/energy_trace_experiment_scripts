@@ -57,42 +57,42 @@ mqps_dict = {
 
 def updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=False):
     df = pd.DataFrame()
-        if ebbrt:
-	    df = pd.read_csv(fname, sep=' ', names=EBBRT_COLS, skiprows=1)
-	    df['c1'] = 0
-	    df['c1e'] = 0
-				    else:
-				        df = pd.read_csv(fname, sep=' ', names=LINUX_COLS)
-					## filter out timestamps
-					df = df[df['timestamp'] >= START_RDTSC]
-					df = df[df['timestamp'] <= END_RDTSC]
-					#converting timestamps
-					df['timestamp'] = df['timestamp'] - df['timestamp'].min()
-					df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
-					# update timestamp_diff
-					df['timestamp_diff'] = df['timestamp'].diff()
-					df.dropna(inplace=True)
+    if ebbrt:
+            df = pd.read_csv(fname, sep=' ', names=EBBRT_COLS, skiprows=1)
+            df['c1'] = 0
+            df['c1e'] = 0
+    else:
+        df = pd.read_csv(fname, sep=' ', names=LINUX_COLS)
+                        ## filter out timestamps
+        df = df[df['timestamp'] >= START_RDTSC]
+        df = df[df['timestamp'] <= END_RDTSC]
+        #converting timestamps
+        df['timestamp'] = df['timestamp'] - df['timestamp'].min()
+        df['timestamp'] = df['timestamp'] * TIME_CONVERSION_khz
+        # update timestamp_diff
+        df['timestamp_diff'] = df['timestamp'].diff()
+        df.dropna(inplace=True)
 
     ## convert global_linux_tuned_df_non0j
-        df_non0j = df[df['joules'] > 0
-	              & (df['instructions'] > 0)
-		      & (df['cycles'] > 0)
-		      & (df['ref_cycles'] > 0)
-		      & (df['llc_miss'] > 0)].copy()
-	df_non0j['timestamp_non0'] = df_non0j['timestamp'] - df_non0j['timestamp'].min()
-	df_non0j['joules'] = df_non0j['joules'] * JOULE_CONVERSION
-	tmp = df_non0j[['instructions', 'ref_cycles', 'cycles', 'joules', 'timestamp_non0', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7']].diff()
-	tmp.columns = [f'{c}_diff' for c in tmp.columns]
-	df_non0j = pd.concat([df_non0j, tmp], axis=1)
-	df_non0j['ref_cycles_diff'] = df_non0j['ref_cycles_diff'] * TIME_CONVERSION_khz
-	df_non0j.dropna(inplace=True)
-	df_non0j['nonidle_frac_diff'] = df_non0j['ref_cycles_diff'] / df_non0j['timestamp_non0_diff']
-														    return df, df_non0j
+    df_non0j = df[df['joules'] > 0
+                    & (df['instructions'] > 0)
+                & (df['cycles'] > 0)
+                & (df['ref_cycles'] > 0)
+                & (df['llc_miss'] > 0)].copy()
+    df_non0j['timestamp_non0'] = df_non0j['timestamp'] - df_non0j['timestamp'].min()
+    df_non0j['joules'] = df_non0j['joules'] * JOULE_CONVERSION
+    tmp = df_non0j[['instructions', 'ref_cycles', 'cycles', 'joules', 'timestamp_non0', 'llc_miss', 'c1', 'c1e', 'c3', 'c6', 'c7']].diff()
+    tmp.columns = [f'{c}_diff' for c in tmp.columns]
+    df_non0j = pd.concat([df_non0j, tmp], axis=1)
+    df_non0j['ref_cycles_diff'] = df_non0j['ref_cycles_diff'] * TIME_CONVERSION_khz
+    df_non0j.dropna(inplace=True)
+    df_non0j['nonidle_frac_diff'] = df_non0j['ref_cycles_diff'] / df_non0j['timestamp_non0_diff']
+    return df, df_non0j
 
 JOULE_CONVERSION = 0.00001526 #counter * constant -> JoulesOB
 TIME_CONVERSION_khz = 1./(2899999*1000)
 
-mcd_comb_loc='~/github/energy_trace_experiment_scripts/collected_data/mcd_combined.csv'
+mcd_comb_loc='/Users/keli/symbiote_kernel/energy_trace_experiment_scripts/mcd/like/test_exper.csv'
 
 COLORS = {'linux_default': 'blue',
           'linux_tuned': 'green',
@@ -127,7 +127,7 @@ def read_workload(workload_loc):
     df['processor'] = df['dvfs'] * df['rapl']
     df['cpi'] = df['ref_cycles'] / df['instructions']
     df['ipc'] = df['instructions']/ df['ref_cycles']
-    df['cstate_exit_latency'] = ((df['c1']*2)+(df['c1e']*20)+(df['c3']*211)+(df['c6']*345)++(df['c7']*345))/1000000.0
+    #df['cstate_exit_latency'] = ((df['c1']*2)+(df['c1e']*20)+(df['c3']*211)+(df['c6']*345)++(df['c7']*345))/1000000.0
     df['rx_desc_per_itr'] = df['rx_desc'] / df['num_interrupts']
     df['rx_bytes_per_itr'] = df['rx_bytes'] / df['num_interrupts']
     df['tx_desc_per_itr'] = df['tx_desc'] / df['num_interrupts']
@@ -143,14 +143,14 @@ def mcd_overview(df, qps_arr):
 	     & (df['dvfs']==3.0)
 	     & (df['target_QPS'] == QPS)].copy()
         dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == QPS)].copy()
-        det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == QPS)].copy()
+        #det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == QPS)].copy()
 
         mssize=7
         # read_99th vs joules
         ax = plt.subplot(1, len(qps_arr), i)
-        plt.errorbar(det['read_99th'], det['joules'],
-                     fmt=HATCHS[det['sys'].max()], ms=mssize, c=COLORS[det['sys'].max()],
-                     label=LABELS[det['sys'].max()], alpha=.6)
+        #plt.errorbar(det['read_99th'], det['joules'],
+        #             fmt=HATCHS[det['sys'].max()], ms=mssize, c=COLORS[det['sys'].max()],
+        #             label=LABELS[det['sys'].max()], alpha=.6)
 
     if dlt.shape[0] > 0:
         plt.errorbar(dlt['read_99th'], dlt['joules'],

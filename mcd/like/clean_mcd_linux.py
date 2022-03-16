@@ -12,6 +12,9 @@ if len(sys.argv) != 2:
     exit()
 loc = sys.argv[1]
 
+file_path = '/Users/keli/symbiote_kernel/energy_trace_experiment_scripts/mcd/like/test_exper.csv'
+sys.stdout = open(file_path, "w")
+
 dvfs = ["0xd00",
         "0xf00",
         "0x1100",
@@ -230,3 +233,4 @@ for d in dvfs:
                             #print(f"linux_core_tuned {i} {core} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(cjoules, 2)} {df['rx_desc'].sum()} {df['rx_bytes'].sum()} {df['tx_desc'].sum()} {df['tx_bytes'].sum()} {int(df_non0j['instructions_diff'].sum())} {int(df_non0j['ref_cycles_diff'].sum())} {df.shape[0]}")
                         print(f"linux_tuned {i} {itr} {d} {rapl} {read_5th} {read_10th} {read_50th} {read_90th} {read_95th} {read_99th} {mqps} {cqps} {tdiff} {round(tjoules, 2)} {trx_desc} {trx_bytes} {ttx_desc} {ttx_bytes} {tins} {trefcyc} {tnum_interrupts}")
                             
+sys.stdout.close()
