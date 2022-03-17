@@ -156,7 +156,6 @@ def exists(i, itr, d, rapl, q):
             return False
     return True                    
         
-print("sys i itr dvfs rapl read_5th read_10th read_50th read_90th read_95th read_99th measure_QPS target_QPS time joules rx_desc rx_bytes tx_desc tx_bytes instructions ref_cycles num_interrupts")
 for d in dvfs:
     for itr in itrs:
         for qps in qpss:
