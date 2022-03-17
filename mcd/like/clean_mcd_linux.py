@@ -12,8 +12,8 @@ if len(sys.argv) != 2:
     exit()
 loc = sys.argv[1]
 
-file_path = '/Users/keli/symbiote_kernel/energy_trace_experiment_scripts/mcd/like/test_exper.csv'
-sys.stdout = open(file_path, "w")
+file_path = '/home/like/like_trace/energy_trace_experiment_scripts/mcd/like/mcd_symbio.csv'
+sys.stdout = open(file_path, "a")
 
 dvfs = ["0xd00",
         "0xf00",
