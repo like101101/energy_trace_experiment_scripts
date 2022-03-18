@@ -25,7 +25,7 @@ function runMCD {
     echo "MRAPL ${MRAPL}"
     echo "NITERS ${NITERS}"
     echo "mkdir ${currdate}"
-    mkdir ${currdate}
+    mkdir current
 
     for qps in ${MQPS}; do
 	for itr in $ITRS; do
@@ -34,7 +34,7 @@ function runMCD {
 		    for i in `seq ${BEGIN_ITER} 1 $NITERS`; do
 		        runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}
 			sleep 1
-			mv linux.mcd.* ${currdate}/
+			mv linux.mcd.* current/
 			sleep 1
 			echo "FINISHED: runMutilateBench --bench mcd --qps ${qps} --time 20 --itr ${itr} --rapl ${r} --dvfs ${dvfs} --nrepeat ${i}"
 		    done

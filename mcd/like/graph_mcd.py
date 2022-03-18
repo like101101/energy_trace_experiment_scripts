@@ -92,7 +92,7 @@ def updateDF(fname, START_RDTSC, END_RDTSC, ebbrt=False):
 JOULE_CONVERSION = 0.00001526 #counter * constant -> JoulesOB
 TIME_CONVERSION_khz = 1./(2899999*1000)
 
-mcd_comb_loc='/Users/keli/symbiote_kernel/energy_trace_experiment_scripts/mcd/like/test_exper.csv'
+mcd_comb_loc='/home/like/like_trace/energy_trace_experiment_scripts/mcd/like/mcd_symbio.csv'
 
 COLORS = {'linux_default': 'blue',
           'linux_tuned': 'green',
