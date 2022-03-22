@@ -24,7 +24,7 @@ function runMCD {
     echo "MQPS ${MQPS}"
     echo "MRAPL ${MRAPL}"
     echo "NITERS ${NITERS}"
-    echo "mkdir ${currdate}"
+    echo "mkdir"
     mkdir current
 
     for qps in ${MQPS}; do

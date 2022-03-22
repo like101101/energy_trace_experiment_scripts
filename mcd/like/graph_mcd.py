@@ -93,7 +93,6 @@ JOULE_CONVERSION = 0.00001526 #counter * constant -> JoulesOB
 TIME_CONVERSION_khz = 1./(2899999*1000)
 
 mcd_comb_loc='/home/like/like_trace/energy_trace_experiment_scripts/mcd/like/mcd_symbio.csv'
-
 COLORS = {'linux_default': 'blue',
           'linux_tuned': 'green',
 	  'ebbrt_tuned': 'red',
@@ -137,61 +136,17 @@ def read_workload(workload_loc):
 def mcd_overview(df, qps_arr):
     i=1
     for QPS in qps_arr:
-        print('***', QPS, df['joules'].max())
-        dld = df[(df['sys']=='linux_default')
-	     & (df['itr']==1)
-	     & (df['dvfs']==3.0)
-	     & (df['target_QPS'] == QPS)].copy()
-        dlt = df[(df['sys']=='linux_tuned') & (df['target_QPS'] == QPS)].copy()
-        #det = df[(df['sys']=='ebbrt_tuned') & (df['target_QPS'] == QPS)].copy()
+        print('***', QPS, df['joules'].max() )
 
-        mssize=7
-        # read_99th vs joules
-        ax = plt.subplot(1, len(qps_arr), i)
-        #plt.errorbar(det['read_99th'], det['joules'],
-        #             fmt=HATCHS[det['sys'].max()], ms=mssize, c=COLORS[det['sys'].max()],
-        #             label=LABELS[det['sys'].max()], alpha=.6)
 
-    if dlt.shape[0] > 0:
-        plt.errorbar(dlt['read_99th'], dlt['joules'],
-                     fmt=HATCHS[dlt['sys'].max()], ms=mssize, c=COLORS[dlt['sys'].max()],
-                     label=LABELS[dlt['sys'].max()], alpha=.6)
+def convert_to_df(workloc):
+    df = pd.read_csv(workloc, sep=' ')
+    df = df['measure_QPS', 'joules']
+    return df
 
-    if dld.shape[0] > 0:
-        plt.errorbar(dld['read_99th'].mean(), dld['joules'].mean(),
-                     fmt=HATCHS[dld['sys'].max()], ms=10, c=COLORS[dld['sys'].max()],
-                     label=LABELS[dld['sys'].max()], alpha=1)
-
-    if i == 1:
-        plt.ylabel("Energy (J)", fontsize=22)
-        plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-
-    if i == 2:
-        plt.xlabel("99% Tail Latency (usecs)", fontsize=22)
-
-    #plt.text(200, 3150, mqps_dict[QPS], fontsize=24, bbox=dict(facecolor='white', alpha=0.5))
-    plt.title(mqps_dict[QPS], fontsize=18, fontweight='bold')
-
-    ## legend
-    if i == 2:
-        plt.legend(ncol=1, loc="lower left", fontsize=14)
-
-    plt.xticks([0, 200, 400], [0, 200, 400])
-    plt.ylim(ymin=500, ymax=3500)
-    #plt.grid(True)
-    if i > 1:
-        ax.yaxis.set_ticklabels([])
-        plt.tight_layout()
-        i += 1
-
-    plt.subplots_adjust(wspace=0.1, hspace=0)
-    #plt.savefig('mcd_overview.pdf')
-
-    plt.rcParams['figure.figsize'] = 14, 6
-
-    plt.rc('xtick', labelsize=20)    # fontsize of the tick labels
-    plt.rc('ytick', labelsize=20)    # fontsize of the tick labels
-
+def plot_df(df):
+    plt.plot(df)
+    
 workload_loc=mcd_comb_loc
 df = read_workload(workload_loc)
 mcd_overview(df, [200000, 400000, 600000])
